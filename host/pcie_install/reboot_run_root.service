@@ -1,0 +1,8 @@
+[Unit]
+Description=Reboot message systemd service.
+[Service]
+Type=simple
+ExecStart=/bin/bash /home/cappfpga01/src/2.mccha/XVCU_TRD/host/pcie_install/run_root.sh
+
+[Install]
+WantedBy=multi-user.target
