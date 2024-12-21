@@ -41,7 +41,7 @@
 #include "xaxidma.h"
 
 #define IIC_DVS_DEVICE_ID	XPAR_XIICPS_1_DEVICE_ID
-#define GPIO_DEVICE_ID		XPAR_GPIO_0_DEVICE_ID
+#define GPIO_DEVICE_ID		XPAR_SENSOR_CTRL_AXI_GPIO_0_DEVICE_ID
 #define DVS_RSTN 0x01
 #define DVS_ADDR		(0x20>>1)	// DVS
 #define DVS_FRAME_HORIZONTAL_LEN 	0xF0 	/* 960 pixels(2bit) = 240 bytes*/
@@ -50,9 +50,9 @@
 
 #define IIC_SENSOR_DEV_ID	XPAR_SENSOR_CTRL_AXI_IIC_0_DEVICE_ID
 
-#define VPROCSSCSC_BASE	XPAR_CIS_STREAM_V_PROC_SS_0_BASEADDR
-#define DEMOSAIC_BASE	XPAR_CIS_STREAM_V_DEMOSAIC_0_S_AXI_CTRL_BASEADDR
-#define VGAMMALUT_BASE	XPAR_CIS_STREAM_V_GAMMA_LUT_0_S_AXI_CTRL_BASEADDR
+#define VPROCSSCSC_BASE	XPAR_XVPROCSS_0_BASEADDR
+#define DEMOSAIC_BASE	XPAR_XV_DEMOSAIC_0_S_AXI_CTRL_BASEADDR
+#define VGAMMALUT_BASE	XPAR_XV_GAMMA_LUT_0_S_AXI_CTRL_BASEADDR
 
 #define PAGE_SIZE	16
 
@@ -834,26 +834,87 @@ void SetupIICIntrHandlers(void) {
  *****************************************************************************/
 void ConfigCSC(u32 width , u32 height)
 {
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0010), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0018), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0050), 0x1000);
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0058), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0060), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0068), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0070), 0x1000);
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0078), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0080), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0088), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0090), 0x1000);
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0098), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x00a0), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x00a8), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x00b0), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x00b8), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0020), width );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0028), height );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0000), 0x81  );
+
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0010), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0018), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0050), 0x24cc);
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0058), 0xf9c3);
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0060), 0xf91f);
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0068), 0xf75c);
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0070), 0x1429);
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0078), 0xfae1);
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0080), 0xfdc3);
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0088), 0xfa66);
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0090), 0x23ae);
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0098), 0x26  );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x00a0), 0x3f  );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x00a8), 0x2b  );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x00b0), 0x0   );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x00b8), 0xb2  );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0020), width );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0028), height );
+//	Xil_Out32((VPROCSSCSC_BASE + 0x0000), 0x81  );
+
 	Xil_Out32((VPROCSSCSC_BASE + 0x0010), 0x0   );
 	Xil_Out32((VPROCSSCSC_BASE + 0x0018), 0x0   );
-	Xil_Out32((VPROCSSCSC_BASE + 0x0050), 0x1000);
+	Xil_Out32((VPROCSSCSC_BASE + 0x0050), 0x1010);
 	Xil_Out32((VPROCSSCSC_BASE + 0x0058), 0x0   );
 	Xil_Out32((VPROCSSCSC_BASE + 0x0060), 0x0   );
-	Xil_Out32((VPROCSSCSC_BASE + 0x0068), 0x0   );
-	Xil_Out32((VPROCSSCSC_BASE + 0x0070), 0x1000);
-	Xil_Out32((VPROCSSCSC_BASE + 0x0078), 0x0   );
+	Xil_Out32((VPROCSSCSC_BASE + 0x0068), 0x1F4 );
+	Xil_Out32((VPROCSSCSC_BASE + 0x0070), 0x7D0 );
+	Xil_Out32((VPROCSSCSC_BASE + 0x0078), 0x1F4 );
 	Xil_Out32((VPROCSSCSC_BASE + 0x0080), 0x0   );
-	Xil_Out32((VPROCSSCSC_BASE + 0x0088), 0x0   );
-	Xil_Out32((VPROCSSCSC_BASE + 0x0090), 0x1000);
-	Xil_Out32((VPROCSSCSC_BASE + 0x0098), 0x0   );
-	Xil_Out32((VPROCSSCSC_BASE + 0x00a0), 0x0   );
-	Xil_Out32((VPROCSSCSC_BASE + 0x00a8), 0x0   );
+	Xil_Out32((VPROCSSCSC_BASE + 0x0088), 0x160 );
+	Xil_Out32((VPROCSSCSC_BASE + 0x0090), 0xED8 );
+	Xil_Out32((VPROCSSCSC_BASE + 0x0098), 0x10  );
+	Xil_Out32((VPROCSSCSC_BASE + 0x00a0), 0x10  );
+	Xil_Out32((VPROCSSCSC_BASE + 0x00a8), 0x10  );
 	Xil_Out32((VPROCSSCSC_BASE + 0x00b0), 0x0   );
 	Xil_Out32((VPROCSSCSC_BASE + 0x00b8), 0xff  );
 	Xil_Out32((VPROCSSCSC_BASE + 0x0020), width );
 	Xil_Out32((VPROCSSCSC_BASE + 0x0028), height );
 	Xil_Out32((VPROCSSCSC_BASE + 0x0000), 0x81  );
 
+
+
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0010)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0018)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0050)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0058)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0060)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0068)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0070)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0078)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0080)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0088)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0090)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0098)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x00a0)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x00a8)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x00b0)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x00b8)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0020)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0028)));
+//	xil_printf("address 0x0010: %x\r\n", Xil_In32((VPROCSSCSC_BASE + 0x0000)));
 }
 
 /*****************************************************************************/
@@ -1336,8 +1397,6 @@ void InitImageProcessingPipe(void)
 			xil_printf("\n\r");
 			return;
 	}
-
-
 	ConfigCSC(width, height);
 	ConfigGammaLut(width, height);
 	ConfigDemosaic(width, height);
@@ -1489,7 +1548,6 @@ void InitVprocSs_Scaler(int count)
 			xil_printf("\n\r");
 			return;
 		}
-
 		status = XVprocSs_CfgInitialize(&scaler_new_inst, p_vpss_cfg,
 				p_vpss_cfg->BaseAddress);
 		if (status != XST_SUCCESS) {
