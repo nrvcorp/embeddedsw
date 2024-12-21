@@ -104,30 +104,42 @@ If you run the commands, it should successfully connect to the ZCU106 PCIE
 
 #### 3. program ZCU106 boards using Vitis Application Project
 
-1. Power both ZCU106 boards on. One should have the CIS and DVS sensors connected, and another should run the NPU. If you're running only CIS-DVS and no NPU, you must remove the NPU board from the PCIE, or program it too. 
+1. Power both ZCU106 boards on. One should have the CIS and DVS sensors connected, and another should run the NPU. If you're running only CIS-DVS and no NPU, you must remove the NPU board from the PCIE, or program it too.
+
+##### Program the NPU board
+
 2. Connect the NPU board's jtag and uart ports to this computer.
 3. Open GTKterm and connect to /dev/ttyUSB0 or /dev/ttyUSB1.
 4. Open Vitis on this computer(not Vitis HLS)
 5. Select Workspace : /home/nrvfpga01/xsrc/NRV_demo
 6. From the explorer, select NRV_npu_system(blue one)
 7. Right click, and select Run as > Launch Hardware.
-8. wait till the Programming bar shows up, and the GTKTerm shows successfuly ran Hello World Application
+8. wait till the Programming bar shows up, and the GTKTerm shows `successfuly ran Hello World Application`
 9. If it doesn't, open up USB port again on new GTKterm window, and reprogram.
+
+##### Program the CIS-DVS board
+
 10. Unplug jtag and uart ports, and transfer cables to CIS DVS sensor ZCU106 board.
 11. From the Vitis explorer, select demo_v1_system(blue one)
 12. Right click, and select Run as > Launch Hardware.
-13. Wait till the Programming bar shows up, and the GTKTerm shows 
+13. Wait till the Programming bar shows up, and the GTKTerm shows
 Is the Camera Sensor Connected?(Y/N) or something similar.
+
+##### Rebooting for PCIE to recognize ZCU106 boards
+
 14. Reboot this pc.
 15. Open up GTKTerm, and connect to /dev/ttyUSB0 or /dev/ttyUSB1.
 16. Blindly press Y, until some window outputs text from the CIS-DVS board.
-17. On the terminal, run ls /dev to make sure xdma_dvs0 and xdma_zcu1060 are alive.
-18. If 17 isn't working, Run lsmod | grep xdma to make sure xdma_dvs and xdma_zcu106 drivers are installed.
+17. On the terminal, run ls /dev to make sure xdma_dvs0 and xdma_zcu1060 are alive. If not, go to the Troubleshooting section.
+
+##### Troubleshooting
+
+18. Run lsmod | grep xdma to make sure xdma_dvs and xdma_zcu106 drivers are installed.
 19. If 18 isn't working, then run lspci and show if xilinx devices show up.
 20. If 19 isn't working, then try to completely turn off this PC.
 21. No powered off boards should be inserted to PCIE.
-22. while this PC is turned completely off, connect NPU board with an external computer. 
-23. Try to run steps 2~13 with that external computer. Afterwards, turn on this PC, then press y on the terminal connected to the CIS DVS board. 
+22. while this PC is turned completely off, connect NPU board with an external computer.
+23. Try to run steps 2~13 with that external computer. Afterwards, turn on this PC, then press y on the terminal connected to the CIS DVS board.
 24. Yep! if you have no problems, continue onwards!
 
 #### 4. Run the Host program
@@ -169,7 +181,7 @@ make all
 
 7. make
 
-8. run ./main with the following options : 
+8. run ./main with the following options :
 
 -c : cis streaming mode
 -d : dvs streaming mode
@@ -184,7 +196,6 @@ I don't know why this bugs up...
 -p : displays CIS, DVS video streams, displays their FPS. Also runs error checks. Since DVS is downsampled, the screen might be laggy or shaded less.
 
 9. to modify parameters, open src/config.hpp
-
 
 - ROI_INFLATION : increase ROI size to center and zoom out actual ROI area
 - DVS_ROI_MIN_SIZE : minimum ROI size of DVS roi mode
@@ -211,7 +222,7 @@ They should match the value of the following :
 
 12. make
 
-13. run ./main again 
+13. run ./main again
 
 ### 6. REVISION HISTORY
 

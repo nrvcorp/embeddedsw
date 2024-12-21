@@ -1,0 +1,1 @@
+./darknet detector demo cfg/voc.data cfg/yolov3-tiny-voc.cfg yolov3-tiny-voc_best.weights -thresh 0.24
