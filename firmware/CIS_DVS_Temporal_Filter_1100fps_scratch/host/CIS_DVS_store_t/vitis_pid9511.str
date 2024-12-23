@@ -1,0 +1,284 @@
+/*
+
+Xilinx Vitis v2021.2.0 (64-bit) [Major: 2021, Minor: 2]
+SW Build 3363750 on 2021-10-16-13:10:08
+
+Process ID (PID): 9511
+License: Customer
+
+Current time: 	Fri Nov 22 15:47:31 KST 2024
+Time zone: 	Korean Standard Time (Asia/Seoul)
+
+OS: Ubuntu
+OS Version: 5.15.0-125-generic
+OS Architecture: amd64
+Available processors (cores): 32
+
+Display: :1
+Screen size: 1920x1080
+Available screens: 1
+Available disk space: 1,581 GB
+
+Java version: 	11.0.11 64-bit
+Java home: 	/tools/Xilinx/Vitis/2021.2/tps/lnx64/jre11.0.11_9
+Java executable location: 	/tools/Xilinx/Vitis/2021.2/tps/lnx64/jre11.0.11_9/bin/java
+Java initial memory (-Xms): 	64 MB
+Java maximum memory (-Xmx):	 1,024 MB
+
+Java library paths: /tools/Xilinx/Vitis/2021.2/tps/lnx64/javafx-sdk-11.0.2/lib:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o/Ubuntu/20:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o/Ubuntu:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o:/tools/Xilinx/Vitis/2021.2/tps/lnx64/jre11.0.11_9/lib/:/tools/Xilinx/Vitis/2021.2/tps/lnx64/jre11.0.11_9/lib//server:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o/Ubuntu/20:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o/Ubuntu:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o:/tools/Xilinx/Vitis/2021.2/tps/lnx64/python-3.8.3/lib:/tools/Xilinx/Vitis/2021.2/aietools/lib/lnx64.o:/tools/Xilinx/Vitis/2021.2/bin/../lnx64/tools/dot/lib:/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib
+
+Java class paths: /tools/Xilinx/Vitis/2021.2/eclipse/lnx64.o//plugins/org.eclipse.equinox.launcher_1.5.700.v20200207-2156.jar
+LD_LIBRARY_PATH: /tools/Xilinx/Vitis
+
+User name: 	user
+User home directory: /home/user
+User working directory: /home/user/download/XVCU_TRD-dev/host/app/CIS_DVS_store_t
+User country: 	US
+User language: 	en
+User locale: 	en_US
+
+RDI_BASEROOT: /tools/Xilinx/Vitis
+HDI_APPROOT: /tools/Xilinx/Vitis/2021.2
+RDI_DATADIR: /tools/Xilinx/Vitis/2021.2/data
+RDI_BINDIR: /tools/Xilinx/Vitis/2021.2/bin
+
+Vitis preferences directory: /home/user/.Xilinx/Vitis/2021.2/
+Vitis workspace directory: /home/user/workspace/DVS_Temporal_5
+Vitis workspace log file location: /home/user/workspace/DVS_Temporal_5/.metadata/.log
+Engine tmp dir: 	
+
+Xilinx Environment Variables
+----------------------------
+XILINX_DSP: 
+XILINX_HLS: /tools/Xilinx/Vitis_HLS/2021.2
+XILINX_PLANAHEAD: /tools/Xilinx/Vitis/2021.2
+XILINX_SDK: /tools/Xilinx/Vitis/2021.2
+XILINX_VITIS: /tools/Xilinx/Vitis/2021.2
+XILINX_VIVADO: /tools/Xilinx/Vivado/2021.2
+XILINX_VIVADO_HLS: /tools/Xilinx/Vivado/2021.2
+_RDI_DONT_SET_XILINX_AS_PATH: True
+
+
+Copyright 1986-2020 Xilinx, Inc. All Rights Reserved.
+
+*/
+
+selectMenuItem("File", "WorkbenchWindow", "MenuItem.FILE");
+selectMenuItem("New", "WorkbenchWindow", "MenuItem.NEW");
+selectMenuItem("Application Project", "WorkbenchWindow", "MenuItem.APPLICATION_PROJECT");
+selectButton("Next", "New Application Project (Create a New Application Project)", "NewAppProjectWizard", "Button.NEXT");
+selectTab("Create a new platform from hardware", "New Application Project (Platform)", "NewAppProjectWizard", "CTabItem.CREATE_A_NEW_PLATFORM");
+selectButton("Browse", "New Application Project (Platform)", "NewAppProjectWizard", "Button.BROWSE");
+setFileDialog("/home/user/workspace/DVS_Temporal_4/DVS_Temporal_3/hw/DVS_Temporal_3.xsa", "Create Platform from XSA", "SDXFileDialog", "Button.OK");
+selectButton("Next", "New Application Project (Platform)", "NewAppProjectWizard", "Button.NEXT");
+setTextField("DVS_Temporal_Cyclic", "New Application Project (Application Project Details)", "NewAppProjectWizard", "Text.APPLICATION_PROJECT_NAME");
+selectButton("Next", "New Application Project (Application Project Details)", "NewAppProjectWizard", "Button.NEXT");
+selectButton("Next", "New Application Project (Domain)", "NewAppProjectWizard", "Button.NEXT");
+selectTreeTable("Empty Application", "Embedded software development templates", "New Application Project (Templates)", "NewAppProjectWizard", "TreeViewer.TemplateContentProvider");
+selectButton("Finish", "New Application Project (Templates)", "NewAppProjectWizard", "Button.FINISH");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("src", "DVS_Temporal_Cyclic_system > DVS_Temporal_Cyclic", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Import Sources", "Explorer", "ProjectExplorer", "MenuItem.IMPORT_SOURCES");
+selectButton("Browse", "Import Sources (File system)", "FileSystemImportWizard", "Button.BROWSE");
+selectTree("src", "Import Sources (File system)", "FileSystemImportWizard", "Tree.SRC");
+selectButton("Select All", "Import Sources (File system)", "FileSystemImportWizard", "Button.SELECT_ALL");
+selectTable("lscript.ld", "Import Sources (File system)", "FileSystemImportWizard", "Table");
+selectTable("README.txt", "Import Sources (File system)", "FileSystemImportWizard", "Table");
+selectButton("Finish", "Import Sources (File system)", "FileSystemImportWizard", "Button.FINISH");
+activateView("DVS_Temporal_Cyclic_system", "DVS_Temporal_Cyclic_system/DVS_Temporal_Cyclic_syst", "SystemSettingsEditor", "CTabItem.DVS_TEMPORAL_CYCLIC_SYSTEM");
+selectTreeTable("dma_example.h", "DVS_Temporal_Cyclic_system > DVS_Temporal_Cyclic > src", EventType.DOUBLE_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("pipeline_program.c", "DVS_Temporal_Cyclic_system > DVS_Temporal_Cyclic > src", "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectTreeTable("dma_example.h", "DVS_Temporal_Cyclic_system > DVS_Temporal_Cyclic > src", "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectTreeTable("pipeline_program.c", "DVS_Temporal_Cyclic_system > DVS_Temporal_Cyclic > src", "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectTreeTable("dma_example.h", "DVS_Temporal_Cyclic_system > DVS_Temporal_Cyclic > src", "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectTreeTable("pipeline_program.c", "DVS_Temporal_Cyclic_system > DVS_Temporal_Cyclic > src", EventType.DOUBLE_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("xmipi_menu.c", "DVS_Temporal_Cyclic_system > DVS_Temporal_Cyclic > src", EventType.DOUBLE_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("xmipi_example.c", "DVS_Temporal_Cyclic_system > DVS_Temporal_Cyclic > src", EventType.DOUBLE_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("dma_example.h", "DVS_Temporal_Cyclic/src/dma_example.h", "CEditor", "CTabItem.DMA_EXAMPLE_H");
+activateView("xmipi_menu.c", "DVS_Temporal_Cyclic/src/xmipi_menu.c", "CEditor", "CTabItem.XMIPI_MENU_C");
+closeView("xmipi_menu.c", "DVS_Temporal_Cyclic/src/xmipi_menu.c", "CEditor", "CTabItem.XMIPI_MENU_C");
+activateView("xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+selectTree("DVSWriteData", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.pipeline_program_c");
+activateView("Outline", "ContentOutline", "CTabItem.OUTLINE");
+selectTree("ProgramDVSSensor", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("SetupIicDVSInterruptSystem", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("start_csi_cap_pipe", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("CalcStride", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("start_csi_cap_pipe", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("config_csi_cap_path", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+activateView("Outline", "ContentOutline", "CTabItem.OUTLINE");
+selectTree("start_csi_cap_pipe", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("ConfigGammaLut", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("ConfigCSC", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("ProgramDVSSensor", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("SetupIicDVSInterruptSystem", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("DVSWriteData", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("MuxInitChannel", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("DVSIICStatusHandler", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("SensorWriteData", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("SendHandler", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("ConfigFrmbuf", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("configure_buffer_system", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("SendHandler", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("configure_buffer_system", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("DisableCSI", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("StartSensor", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("ResetVprocSs_Scaler", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("InitializeCsiRxSs", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("SetColorDepth", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("DisableScaler", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("ResetVprocSs_Scaler", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("InitVprocSs_Scaler", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("EnableCSI", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("InitImageProcessingPipe", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("config_dvs_cap_path", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("start_dvs_cap_pipe", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("config_dvs_cap_path", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("start_dvs_cap_pipe", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("config_dvs_cap_path", EventType.POPUP_TRIGGER_CLICK, "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectMenuItem("Open Declaration", "Outline", "ContentOutline", "MenuItem.OPEN_DECLARATION");
+selectTextEditor("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.PIPELINE_PROGRAM_C");
+selectMenuItem("Open Call Hierarchy", "pipeline_program.c", "WorkbenchWindow", "MenuItem.OPEN_CALL_HIERARCHY");
+activateView("Call Hierarchy", "CHViewPart", "CTabItem.CALL_HIERARCHY");
+selectTree("main", "config_dvs_cap_path", EventType.DOUBLE_CLICK, "Call Hierarchy", "CHViewPart", "Tree.FunctionHandle");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+selectTree("start_dvs_cap_pipe", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTextEditor("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.PIPELINE_PROGRAM_C");
+selectMenuItem("Open Call Hierarchy", "pipeline_program.c", "WorkbenchWindow", "MenuItem.OPEN_CALL_HIERARCHY");
+activateView("Call Hierarchy", "CHViewPart", "CTabItem.CALL_HIERARCHY");
+selectTree("main", "start_dvs_cap_pipe", EventType.DOUBLE_CLICK, "Call Hierarchy", "CHViewPart", "Tree.FunctionHandle");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+selectTree("DVSDma_WriteSetup", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTextEditor("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.PIPELINE_PROGRAM_C");
+selectMenuItem("Quick Outline", "pipeline_program.c", "WorkbenchWindow", "MenuItem.QUICK_OUTLINE");
+selectTextEditor("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.PIPELINE_PROGRAM_C");
+selectMenuItem("Open Call Hierarchy", "pipeline_program.c", "WorkbenchWindow", "MenuItem.OPEN_CALL_HIERARCHY");
+activateView("Call Hierarchy", "CHViewPart", "CTabItem.CALL_HIERARCHY");
+selectTree("config_dvs_cap_path", "DVSDma_WriteSetup", EventType.DOUBLE_CLICK, "Call Hierarchy", "CHViewPart", "Tree.FunctionHandle");
+selectTextEditor("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.PIPELINE_PROGRAM_C");
+selectMenuItem("Open Declaration", "pipeline_program.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+activateView("Outline", "ContentOutline", "CTabItem.OUTLINE");
+selectTree("config_dvs_cap_path", "DVSDma_WriteSetup", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.pipeline_program_c");
+activateView("xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+setCombo("XAxiDma_LookupConfig", "Find/Replace", "FindReplaceDialog", "Combo.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+activateView("xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Call Hierarchy", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_CALL_HIERARCHY");
+activateView("Call Hierarchy", "CHViewPart", "CTabItem.CALL_HIERARCHY");
+selectTree("main", "GetDMAHardwareSpecificationAndPutIntoInstance", EventType.DOUBLE_CLICK, "Call Hierarchy", "CHViewPart", "Tree.FunctionHandle");
+activateView("Outline", "ContentOutline", "CTabItem.OUTLINE");
+selectTree("g_dma_fil_rd_work_ptr : u32", "GetDMAHardwareSpecificationAndPutIntoInstance", "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectTree("FILRxRingPtr : XAxiDma_BdRing", "GetDMAHardwareSpecificationAndPutIntoInstance", "Outline", "ContentOutline", "Tree.xmipi_example_c");
+activateView("Call Hierarchy", "CHViewPart", "CTabItem.CALL_HIERARCHY");
+selectTree("main", "GetDMAHardwareSpecificationAndPutIntoInstance", EventType.DOUBLE_CLICK, "Call Hierarchy", "CHViewPart", "Tree.FunctionHandle");
+activateView("DVS_Temporal_Cyclic", "DVS_Temporal_Cyclic/DVS_Temporal_Cyclic.prj", "SDXSettingsEditor", "CTabItem.DVS_TEMPORAL_CYCLIC");
+activateView("dma_example.h", "DVS_Temporal_Cyclic/src/dma_example.h", "CEditor", "CTabItem.DMA_EXAMPLE_H");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("*xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+selectTextEditor("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.PIPELINE_PROGRAM_C");
+selectMenuItem("Open Declaration", "pipeline_program.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+activateView("*xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("*xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("*xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("*xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+selectTree("DMA_FIL_RXBD_NUM_PER_FRAME", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTable("XAxiDma_BdRingToHw", "Open Declaration", "Table", "Table");
+activateView("*xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+activateView("xaxidma_bdring.c", "DVS_Temporal_3/psu_cortexa53_0/standalone_psu_corte", "CEditor", "CTabItem.XAXIDMA_BDRING_C");
+activateView("*xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+activateView("xaxidma_bdring.c", "DVS_Temporal_3/psu_cortexa53_0/standalone_psu_corte", "CEditor", "CTabItem.XAXIDMA_BDRING_C");
+activateView("*xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Replace", "Find/Replace", "FindReplaceDialog", "Button.REPLACE");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+selectTree("config_dvs_cap_path", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("DVSDma_WriteSetup", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectTextEditor("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.PIPELINE_PROGRAM_C");
+selectMenuItem("Open Declaration", "pipeline_program.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTable("XAxiDma_BdRingAlloc", "Open Declaration", "Table", "Table");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("*xaxidma_bdring.c", "DVS_Temporal_3/psu_cortexa53_0/standalone_psu_corte", "Editor", "CTabItem.*XAXIDMA_BDRING_C");
+selectButton("Dont Save", "Save Resource", "Button", "DONT_SAVE");
+activateView("Outline", "ContentOutline", "CTabItem.OUTLINE");
+selectTree("SensorWriteData", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+selectTree("SensorReadData", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.pipeline_program_c");
+activateView("dma_example.h", "DVS_Temporal_Cyclic/src/dma_example.h", "CEditor", "CTabItem.DMA_EXAMPLE_H");
+selectTree("DmaFILTxIntrHandler", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.dma_example_h");
+activateView("DVS_Temporal_Cyclic", "DVS_Temporal_Cyclic/DVS_Temporal_Cyclic.prj", "SDXSettingsEditor", "CTabItem.DVS_TEMPORAL_CYCLIC");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("dma_example.h", "DVS_Temporal_Cyclic/src/dma_example.h", "CEditor", "CTabItem.DMA_EXAMPLE_H");
+activateView("xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+selectTree("TxBDRun", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectTree("RxBDRun", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectTree("TxBDRun", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectTree("RxBDRun", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.xmipi_example_c");
+activateView("Outline", "ContentOutline", "CTabItem.OUTLINE");
+selectTree("RxBDRetrieve", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectTree("TrxSetup_v2", "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectTree("RxBDRetrieve", "Outline", "ContentOutline", "Tree.xmipi_example_c");
+activateView("Outline", "ContentOutline", "CTabItem.OUTLINE");
+selectTree("TrxSetup_v2", "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectTree("RxBDRun", "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("dma_example.h", "DVS_Temporal_Cyclic/src/dma_example.h", "CEditor", "CTabItem.DMA_EXAMPLE_H");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectTextEditor("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.PIPELINE_PROGRAM_C");
+selectMenuItem("Open Declaration", "pipeline_program.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+closeView("xaxidma_bdring.h", "DVS_Temporal_3/zynqmp_pmufw/zynqmp_pmufw_bsp/psu_pmu_0/libsrc/axidma_v9_13/src/xaxidma_bdring.h", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+selectTextEditor("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.PIPELINE_PROGRAM_C");
+selectMenuItem("Open Declaration", "pipeline_program.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTable("XAxiDma_SelectCyclicMode", "Open Declaration", "Table", "Table");
+activateView("xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("xaxidma.c", "DVS_Temporal_3/psu_cortexa53_0/standalone_psu_corte", "CEditor", "CTabItem.XAXIDMA_C");
+activateView("xmipi_example.c", "DVS_Temporal_Cyclic/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+activateView("pipeline_program.c", "DVS_Temporal_Cyclic/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+selectButton("Exit", "Confirm Exit", "MessageDialogWithToggle", "Button.EXIT");
+// Exiting Xilinx Vitis with a status code '0' at 11/25/24, 8:46:46 PM KST
+// Elapsed time: 76:59:15
+

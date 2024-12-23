@@ -1,0 +1,374 @@
+/*
+
+Xilinx Vitis v2021.2.0 (64-bit) [Major: 2021, Minor: 2]
+SW Build 3363750 on 2021-10-16-13:10:08
+
+Process ID (PID): 16572
+License: Customer
+
+Current time: 	Mon Nov 25 19:52:35 KST 2024
+Time zone: 	Korean Standard Time (Asia/Seoul)
+
+OS: Ubuntu
+OS Version: 5.15.0-125-generic
+OS Architecture: amd64
+Available processors (cores): 32
+
+Display: :1
+Screen size: 1920x1080
+Available screens: 1
+Available disk space: 1,580 GB
+
+Java version: 	11.0.11 64-bit
+Java home: 	/tools/Xilinx/Vitis/2021.2/tps/lnx64/jre11.0.11_9
+Java executable location: 	/tools/Xilinx/Vitis/2021.2/tps/lnx64/jre11.0.11_9/bin/java
+Java initial memory (-Xms): 	64 MB
+Java maximum memory (-Xmx):	 1,024 MB
+
+Java library paths: /tools/Xilinx/Vitis/2021.2/tps/lnx64/javafx-sdk-11.0.2/lib:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o/Ubuntu/20:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o/Ubuntu:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o:/tools/Xilinx/Vitis/2021.2/tps/lnx64/jre11.0.11_9/lib/:/tools/Xilinx/Vitis/2021.2/tps/lnx64/jre11.0.11_9/lib//server:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o/Ubuntu/20:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o/Ubuntu:/tools/Xilinx/Vitis/2021.2/lib/lnx64.o:/tools/Xilinx/Vitis/2021.2/tps/lnx64/python-3.8.3/lib:/tools/Xilinx/Vitis/2021.2/aietools/lib/lnx64.o:/tools/Xilinx/Vitis/2021.2/bin/../lnx64/tools/dot/lib:/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib
+
+Java class paths: /tools/Xilinx/Vitis/2021.2/eclipse/lnx64.o//plugins/org.eclipse.equinox.launcher_1.5.700.v20200207-2156.jar
+LD_LIBRARY_PATH: /tools/Xilinx/Vitis
+
+User name: 	user
+User home directory: /home/user
+User working directory: /home/user/download/XVCU_TRD-dev/host/app/CIS_DVS_store_t
+User country: 	US
+User language: 	en
+User locale: 	en_US
+
+RDI_BASEROOT: /tools/Xilinx/Vitis
+HDI_APPROOT: /tools/Xilinx/Vitis/2021.2
+RDI_DATADIR: /tools/Xilinx/Vitis/2021.2/data
+RDI_BINDIR: /tools/Xilinx/Vitis/2021.2/bin
+
+Vitis preferences directory: /home/user/.Xilinx/Vitis/2021.2/
+Vitis workspace directory: /home/user/workspace/DVS_Temporal_4
+Vitis workspace log file location: /home/user/workspace/DVS_Temporal_4/.metadata/.log
+Engine tmp dir: 	
+
+Xilinx Environment Variables
+----------------------------
+XILINX_DSP: 
+XILINX_HLS: /tools/Xilinx/Vitis_HLS/2021.2
+XILINX_PLANAHEAD: /tools/Xilinx/Vitis/2021.2
+XILINX_SDK: /tools/Xilinx/Vitis/2021.2
+XILINX_VITIS: /tools/Xilinx/Vitis/2021.2
+XILINX_VIVADO: /tools/Xilinx/Vivado/2021.2
+XILINX_VIVADO_HLS: /tools/Xilinx/Vivado/2021.2
+_RDI_DONT_SET_XILINX_AS_PATH: True
+
+
+Copyright 1986-2020 Xilinx, Inc. All Rights Reserved.
+
+*/
+
+selectTreeTable("Debug", "DVS_Temporal_test_system > DVS_Temporal_test", "pipeline_program.c", "CEditor", "TreeViewer.NavigatorContentServiceContentProvider");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("xparameters.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XPARAMETERS_H");
+activateView("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+setCombo("getbd", "Find/Replace", "FindReplaceDialog", "Combo.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+setCombo("getBD", "Find/Replace", "FindReplaceDialog", "Combo.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+setCombo("getbdring", "Find/Replace", "FindReplaceDialog", "Combo.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+activateView("Outline", "ContentOutline", "CTabItem.OUTLINE");
+selectTree("main", "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+activateView("Problems", "ProblemsView", "CTabItem.PROBLEMS");
+activateView("Problems", "0 errors 1 warning 10 others", "ProblemsView", "CTabItem.PROBLEMS");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+activateView("Problems", "ProblemsView", "CTabItem.PROBLEMS");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+activateView("Problems", "0 errors 1 warning 10 others", "ProblemsView", "CTabItem.PROBLEMS");
+activateView("Problems", "0 errors 10 warnings 9 others", "ProblemsView", "CTabItem.PROBLEMS");
+selectProblemsView("return with a value in function returning void", "Warnings", EventType.DOUBLE_CLICK, "ProblemsView", "TreeViewer.MarkerViewerContentProvider");
+activateView("Problems", "ProblemsView", "CTabItem.PROBLEMS");
+selectProblemsView("cast from pointer to integer of different size", "Warnings", EventType.DOUBLE_CLICK, "ProblemsView", "TreeViewer.MarkerViewerContentProvider");
+selectProblemsView("comparison of integer expressions of different sign", "Warnings", EventType.DOUBLE_CLICK, "ProblemsView", "TreeViewer.MarkerViewerContentProvider");
+selectProblemsView("implicit declaration of function printf", "Warnings", EventType.DOUBLE_CLICK, "ProblemsView", "TreeViewer.MarkerViewerContentProvider");
+activateView("Problems", "ProblemsView", "CTabItem.PROBLEMS");
+selectProblemsView("control reaches end of non-void function", "Warnings", EventType.DOUBLE_CLICK, "ProblemsView", "TreeViewer.MarkerViewerContentProvider");
+activateView("Problems", "ProblemsView", "CTabItem.PROBLEMS");
+selectProblemsView("implicit declaration of function printf", "Warnings", EventType.DOUBLE_CLICK, "ProblemsView", "TreeViewer.MarkerViewerContentProvider");
+activateView("Problems", "ProblemsView", "CTabItem.PROBLEMS");
+selectProblemsView("unused variable Index", "Warnings", EventType.DOUBLE_CLICK, "ProblemsView", "TreeViewer.MarkerViewerContentProvider");
+selectProblemsView("unused variable Status", "Warnings", EventType.DOUBLE_CLICK, "ProblemsView", "TreeViewer.MarkerViewerContentProvider");
+activateView("Problems", "ProblemsView", "CTabItem.PROBLEMS");
+selectProblemsView("Warnings", "Warnings", EventType.DOUBLE_CLICK, "ProblemsView", "TreeViewer.MarkerViewerContentProvider");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+activateView("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+activateView("Outline", "ContentOutline", "CTabItem.OUTLINE");
+selectTree("XAxiDma_CustomBdRingToHw", EventType.DOUBLE_CLICK, "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTable("XAxiDma_BdRingNext", "Open Declaration", "Table", "Table");
+activateView("*xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTable("XAxiDma_BdRing - /DVS_Temporal_3/export/DVS_Tempora", "Open Declaration", "Table", "Table");
+activateView("*xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+activateView("xmipi_menu.c", "DVS_Temporal_test/src/xmipi_menu.c", "CEditor", "CTabItem.XMIPI_MENU_C");
+activateView("*xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("Debug", "DVS_Temporal_test_system > DVS_Temporal_test", "xmipi_example.c", "CEditor", "TreeViewer.NavigatorContentServiceContentProvider");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTable("XAXIDMA_CACHE_FLUSH", "Open Declaration", "Table", "Table");
+activateView("xstatus.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XSTATUS_H");
+activateView("xparameters.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XPARAMETERS_H");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("pipeline_program.c", "DVS_Temporal_test/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("pipeline_program.c", "DVS_Temporal_test/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("pipeline_program.c", "DVS_Temporal_test/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+selectTree("DmaWriteDoneCallback", "Outline", "ContentOutline", "Tree.pipeline_program_c");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTable("XAxiDma_BdRingNext", "Open Declaration", "Table", "Table");
+activateView("xaxidma_bd.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BD_H");
+activateView("xparameters.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XPARAMETERS_H");
+activateView("pipeline_program.c", "DVS_Temporal_test/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("xparameters.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XPARAMETERS_H");
+activateView("xaxidma_bd.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BD_H");
+activateView("xstatus.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XSTATUS_H");
+activateView("xaxidma_bd.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BD_H");
+activateView("xparameters.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XPARAMETERS_H");
+activateView("xaxidma_bd.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BD_H");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("pipeline_program.c", "DVS_Temporal_test/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("*xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTable("XAxiDma_BdRingNext", "Open Declaration", "Table", "Table");
+activateView("*xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+activateView("xaxidma_bd.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BD_H");
+activateView("xparameters.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XPARAMETERS_H");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("pipeline_program.c", "DVS_Temporal_test/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("*xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+activateView("xparameters.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XPARAMETERS_H");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("pipeline_program.c", "DVS_Temporal_test/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+activateView("pipeline_program.c", "DVS_Temporal_test/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("xparameters.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XPARAMETERS_H");
+activateView("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("pipeline_program.c", "DVS_Temporal_test/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("xparameters.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XPARAMETERS_H");
+activateView("xaxidma_bd.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BD_H");
+activateView("pipeline_program.c", "DVS_Temporal_test/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("*xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+activateView("xaxidma_bd.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BD_H");
+closeView("xstatus.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Temporal_3/standalone_psu_cortexa53_0/bspinclude/include/xstatus.h", "CEditor", "CTabItem.XSTATUS_H");
+activateView("xparameters.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XPARAMETERS_H");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("*xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "Editor", "CTabItem.*XMIPI_EXAMPLE_C");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("Debug", "DVS_Temporal_test_system > DVS_Temporal_test", "xmipi_example.c", "CEditor", "TreeViewer.NavigatorContentServiceContentProvider");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("DVS_Temporal_test_system", "DVS_Temporal_test_system > DVS_Temporal_test", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("DVS_Temporal_test_system", "DVS_Temporal_test_system > DVS_Temporal_test", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", "DVS_Temporal_test_system > DVS_Temporal_test", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+activateView("pipeline_program.c", "DVS_Temporal_test/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("xmipi_menu.c", "DVS_Temporal_test/src/xmipi_menu.c", "CEditor", "CTabItem.XMIPI_MENU_C");
+activateView("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+selectButton("Find", "Find/Replace", "FindReplaceDialog", "Button.FIND");
+setCombo("ringinit", "Find/Replace", "FindReplaceDialog", "Combo.FIND");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTable("XAxiDma_BdRingCreate", "Open Declaration", "Table", "Table");
+activateView("xaxidma_bd.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BD_H");
+activateView("xparameters.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XPARAMETERS_H");
+activateView("xaxidma_bdring.h", "DVS_Temporal_3/export/DVS_Temporal_3/sw/DVS_Tempora", "CEditor", "CTabItem.XAXIDMA_BDRING_H");
+activateView("pipeline_program.c", "DVS_Temporal_test/src/pipeline_program.c", "CEditor", "CTabItem.PIPELINE_PROGRAM_C");
+activateView("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+selectTree("XAxiDma_CustomBdRingNext1", "Outline", "ContentOutline", "Tree.xmipi_example_c");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("Debug", "DVS_Temporal_test_system > DVS_Temporal_test", "xmipi_example.c", "CEditor", "TreeViewer.NavigatorContentServiceContentProvider");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("DVS_Temporal_test_system", "DVS_Temporal_test_system > DVS_Temporal_test", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", "DVS_Temporal_test_system > DVS_Temporal_test", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectButton("Cancel", "Open Declaration", "Button", "CANCEL");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTable("XAxiDma_Bd - /DVS_Temporal_3/export/DVS_Temporal_3/", "Open Declaration", "Table", "Table");
+activateView("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", "CEditor", "CTabItem.XMIPI_EXAMPLE_C");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("DVS_Temporal_test", "DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectTreeTable("DVS_Temporal_test_system", "DVS_Temporal_test_system", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("Debug", "DVS_Temporal_test_system > DVS_Temporal_test", "xmipi_example.c", "CEditor", "TreeViewer.NavigatorContentServiceContentProvider");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("DVS_Temporal_test_system", "DVS_Temporal_test_system > DVS_Temporal_test", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+activateView("Outline", "ContentOutline", "CTabItem.OUTLINE");
+selectTree("main", "DVS_Temporal_test_system > DVS_Temporal_test", "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectTree("RxBDRun", "DVS_Temporal_test_system > DVS_Temporal_test", "Outline", "ContentOutline", "Tree.xmipi_example_c");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Declaration", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_DECLARATION");
+selectTextEditor("xmipi_example.c", "DVS_Temporal_test/src/xmipi_example.c", EventType.POPUP_TRIGGER_CLICK, "CEditor", "StyledText.XMIPI_EXAMPLE_C");
+selectMenuItem("Open Call Hierarchy", "xmipi_example.c", "WorkbenchWindow", "MenuItem.OPEN_CALL_HIERARCHY");
+activateView("Call Hierarchy", "CHViewPart", "CTabItem.CALL_HIERARCHY");
+selectTree("DmaFILRxDoneCallBack", "fil_frm_cnt : u32", EventType.DOUBLE_CLICK, "Call Hierarchy", "CHViewPart", "Tree.VariableHandle");
+activateView("Explorer", "ProjectExplorer", "CTabItem.EXPLORER");
+selectTreeTable("DVS_Temporal_test_system", "fil_frm_cnt : u32", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Build Project", "Explorer", "ProjectExplorer", "MenuItem.BUILD_PROJECT");
+activateView("Console", "ConsoleView", "CTabItem.CONSOLE");
+selectTreeTable("DVS_Temporal_test_system", "fil_frm_cnt : u32", EventType.POPUP_TRIGGER_CLICK, "Explorer", "ProjectExplorer", "TreeViewer.NavigatorContentServiceContentProvider");
+selectMenuItem("Run As", "Explorer", "ProjectExplorer", "MenuItem.RUN_AS");
+selectMenuItem("1 Launch Hardware", "DVS_Temporal_test_system", "WorkbenchWindow", "MenuItem.1_LAUNCH_HARDWARE");
+selectButton("Exit", "Confirm Exit", "MessageDialogWithToggle", "Button.EXIT");
+// Exiting Xilinx Vitis with a status code '0' at 11/25/24, 8:46:43 PM KST
+// Elapsed time: 00:54:08
+
