@@ -341,26 +341,26 @@ void forward_network(network net, network_state state)
     // 2. reorder input image (ch, w, h) -> (w, h, (Ti:8))
     // 3. send to PCIE
 
-    size_t in_c = net.layers[0].c;
-    size_t in_h = net.layers[0].h;
-    size_t in_w = net.layers[0].w;
-    int in_bytes = in_w * in_h * ((in_c + 7) / 8) * 8;
-    char *in_buffer = (char *)calloc(in_bytes, sizeof(char));
+    // size_t in_c = net.layers[0].c;
+    // size_t in_h = net.layers[0].h;
+    // size_t in_w = net.layers[0].w;
+    // int in_bytes = in_w * in_h * ((in_c + 7) / 8) * 8;
+    // char *in_buffer = (char *)calloc(in_bytes, sizeof(char));
 
-    ////---------------------obtain NPU input from darknet resized image------------------------
-    for (int c_idx = 0; c_idx < in_c; c_idx++)
-    {
-        for (int h_idx = 0; h_idx < in_h; h_idx++)
-        {
-            for (int w_idx = 0; w_idx < in_w; w_idx++)
-            {
-                int src = c_idx * in_w * in_h + h_idx * in_w + w_idx;
-                int dest = h_idx * in_w * 8 + w_idx * 8 + c_idx;
-                in_buffer[dest] = state.input[src] * 255.0;
-                in_buffer[dest] = max_abs_int(in_buffer[dest], 255);
-            }
-        }
-    }
+    // ////---------------------obtain NPU input from darknet resized image------------------------
+    // for (int c_idx = 0; c_idx < in_c; c_idx++)
+    // {
+    //     for (int h_idx = 0; h_idx < in_h; h_idx++)
+    //     {
+    //         for (int w_idx = 0; w_idx < in_w; w_idx++)
+    //         {
+    //             int src = c_idx * in_w * in_h + h_idx * in_w + w_idx;
+    //             int dest = h_idx * in_w * 8 + w_idx * 8 + c_idx;
+    //             in_buffer[dest] = state.input[src] * 255.0;
+    //             in_buffer[dest] = max_abs_int(in_buffer[dest], 255);
+    //         }
+    //     }
+    // }
     ////---------------------------------------------------------------------------------------
 
     ////---------------------compare ifm_case 0 formatted image with input hex file------------------
@@ -398,9 +398,9 @@ void forward_network(network net, network_state state)
     // in_buffer = file_read_wrapper(infname, in_bytes);
     ////--------------------------------------------------------------------------------------
     // write to PCIE
-    write_from_buffer(net.h2c_device, net.h2c_fd, in_buffer,
-                      in_bytes, net.layers[0].layer_npu.ifm_baseaddr);
-    free(in_buffer);
+    // write_from_buffer(net.h2c_device, net.h2c_fd, in_buffer,
+    //                   in_bytes, net.layers[0].layer_npu.ifm_baseaddr);
+    // free(in_buffer);
     int prev_i = 0;
     // Run All layers of model
     double time = get_time_point();
