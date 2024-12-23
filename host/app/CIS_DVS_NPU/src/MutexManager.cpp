@@ -36,7 +36,7 @@ MutexManager::MutexManager()
     {
         pthread_mutex_lock(&mutex);
     }
-    void MutexManager::unlock_single_writer(int is_update = 1)
+    void MutexManager::unlock_single_writer(int is_update)
     {
         if (is_update)
         {

@@ -5,7 +5,7 @@
 #include "NPU.hpp"
 #include "CIS.hpp" // Include CIS class
 #include "DVS.hpp" // Include DVS class
-void CIS_NPU_thread(CIS *cis, NPU *npu,float x_scale, float y_scale, int x_offset, int y_offset);
+void CIS_NPU_thread(CIS *cis, NPU *npu, bool always_run_npu = true);
 #ifdef __cplusplus
 extern "C"
 {
