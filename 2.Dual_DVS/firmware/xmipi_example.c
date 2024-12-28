@@ -37,7 +37,6 @@
 #include "platform.h"
 #include "xparameters.h"
 #include "xil_cache.h"
-#include "xiic.h"
 #include "xil_io.h"
 #include "xuartps.h"
 #include "xil_types.h"
@@ -57,23 +56,6 @@
 
 
 /************************** Constant Definitions *****************************/
-#define DEBUG_FEATURES 1
-
-
-
-#define MIPI_CONTROLLER_mWriteReg(BaseAddress, RegOffset, Data) \
-  	Xil_Out32((BaseAddress) + (RegOffset), (u32)(Data))
-#define MIPI_CONTROLLER_mReadReg(BaseAddress, RegOffset) \
-  	Xil_In32((BaseAddress) + (RegOffset))
-
-#define MIPI_CONTROLLER_BASEADDR XPAR_MIPI_RX_SUBSYSTEM_TOP_0_BASEADDR
-#define MIPI_CONTROLLER_S00_AXI_SLV_REG0_OFFSET 0
-#define MIPI_CONTROLLER_S00_AXI_SLV_REG1_OFFSET 4
-#define MIPI_CONTROLLER_S00_AXI_SLV_REG2_OFFSET 8
-#define MIPI_CONTROLLER_S00_AXI_SLV_REG3_OFFSET 12 // frame_dump_num_reg_val
-#define MIPI_CONTROLLER_S00_AXI_SLV_REG4_OFFSET 16 // frame_control_reg_val
-#define MIPI_CONTROLLER_S00_AXI_SLV_REG5_OFFSET 20 // first fifo fps val
-#define MIPI_CONTROLLER_S00_AXI_SLV_REG6_OFFSET 24 // second fifo fps val
 
 /***************** Macros (Inline Functions) Definitions *********************/
 #define UART_BASEADDR	XPAR_XUARTPS_0_BASEADDR
@@ -84,10 +66,6 @@
 
 #ifdef XPAR_PSU_ACPU_GIC_DEVICE_ID
 #define PSU_INTR_DEVICE_ID	XPAR_PSU_ACPU_GIC_DEVICE_ID
-#endif
-
-#ifdef XPAR_PSU_RCPU_GIC_DEVICE_ID
-#define PSU_INTR_DEVICE_ID	XPAR_PSU_RCPU_GIC_DEVICE_ID
 #endif
 
 #define RESET_TIMEOUT_COUNTER	10000
@@ -122,35 +100,147 @@ u8 TxRestartColorbar; /* TX restart flag is set when the TX cable has
                        * been reconnected and the TX colorbar was showing. */
 XMipi_Menu xMipiMenu; // Menu structure
 
+
 XPipeline_Cfg Pipeline_Cfg;
 XPipeline_Cfg New_Cfg;
 
-
-#define DEBUG_COUNT 7
-u8 dbg_idx = 0;
-
-int FramesTx;		// Num of frames that have been sent
-
-
-uint8_t StartTx;
-
-volatile int accumTime[DEBUG_COUNT] = { 0 };
-volatile int accumCntr[DEBUG_COUNT] = { 0 };
-
-
-
-u8 RxStatusFlag;
-u8 TxTriggeredFlag;
-u8 IsInTxCriticalSection = 0;
-
-#if DEBUG_FEATURES
-u32 NumOfTxFrames = 0;
-#endif
-
-int Err_Cnt = 0;
 /************************** Function Definitions *****************************/
+void DMARxIntrHandler(void *Callback)
+{
+//		xil_printf("DMA Interrupt Handler!!");
+	DVSCamera *DVSCamera_t = (DVSCamera *)Callback;
+	XAxiDma_BdRing *RxRingPtr = XAxiDma_GetRxRing(&DVSCamera_t->axi_dma);
 
-extern void config_csi_cap_path();
+	u32 IrqStatus;
+	int TimeOut;
+
+	/* Read pending interrupts */
+	IrqStatus = XAxiDma_BdRingGetIrq(RxRingPtr);
+
+	/* Acknowledge pending interrupts */
+	XAxiDma_BdRingAckIrq(RxRingPtr, IrqStatus);
+
+	/*
+	 * If no interrupt is asserted, we do not do anything
+	 */
+	if (!(IrqStatus & XAXIDMA_IRQ_ALL_MASK))
+	{
+		return;
+	}
+
+	/*
+	 * If error interrupt is asserted, raise error flag, reset the
+	 * hardware to recover from the error, and return with no further
+	 * processing.
+	 */
+	if ((IrqStatus & XAXIDMA_IRQ_ERROR_MASK))
+	{
+
+		XAxiDma_BdRingDumpRegs(RxRingPtr);
+
+		/* Reset could fail and hang
+		 * NEED a way to handle this or do not call it??
+		 */
+		XAxiDma_Reset(&DVSCamera_t->axi_dma);
+
+		TimeOut = RESET_TIMEOUT_COUNTER;
+
+		while (TimeOut)
+		{
+			if (XAxiDma_ResetIsDone(&DVSCamera_t->axi_dma))
+			{
+				break;
+			}
+
+			TimeOut -= 1;
+		}
+
+		return;
+	}
+
+	/*
+	 * If completion interrupt is asserted, call RX call back function
+	 * to handle the processed BDs and then raise the according flag.
+	 */
+	if ((IrqStatus & (XAXIDMA_IRQ_IOC_MASK)))
+	{
+		DVSDmaWriteDoneCallback(DVSCamera_t);
+	}
+}
+
+/*****************************************************************************/
+/**
+ *
+ * This function setups the interrupt system.
+ *
+ * @return	XST_SUCCESS if interrupt setup was successful else error code
+ *
+ * @note	None.
+ *
+ *****************************************************************************/
+int SetupInterruptSystem(void)
+{
+	int Status;
+
+	XScuGic *IntcInstPtr = &Intc;
+
+	/*
+	 * Initialize the interrupt controller driver so that it's ready to
+	 * use, specify the device ID that was generated in xparameters.h
+	 */
+	XScuGic_Config *IntcCfgPtr;
+	IntcCfgPtr = XScuGic_LookupConfig(PSU_INTR_DEVICE_ID);
+	if (IntcCfgPtr == NULL) {
+		print("ERR:: Interrupt Controller not found");
+		return (XST_DEVICE_NOT_FOUND);
+	}
+	Status = XScuGic_CfgInitialize(IntcInstPtr, IntcCfgPtr,
+								   IntcCfgPtr->CpuBaseAddress);
+	if (Status != XST_SUCCESS) {
+		xil_printf("Intc initialization failed!\r\n");
+		return XST_FAILURE;
+	}
+
+
+	for (int cam_id = 0; cam_id < DVS_NUM; ++cam_id) {
+		XScuGic_SetPriorityTriggerType(IntcInstPtr, dvs_cameras[cam_id].axi_dma_intr_id, 0xA8, 0x3);
+	}
+
+	/*
+	 * Connect the device driver handler that will be called when an
+	 * interrupt for the device occurs, the handler defined above performs
+	 * the specific interrupt processing for the device.
+	 */
+	Status = XScuGic_Connect(IntcInstPtr, XPAR_XIICPS_1_INTR,
+							 (Xil_InterruptHandler)XIicPs_MasterInterruptHandler,
+							 (void *)&IicPsInstance);
+	if (Status != XST_SUCCESS) {
+		return Status;
+	}
+	for (int cam_id = 0; cam_id < DVS_NUM; ++cam_id) {
+		Status = XScuGic_Connect(IntcInstPtr, dvs_cameras[cam_id].axi_dma_intr_id,
+								 (Xil_InterruptHandler)DMARxIntrHandler,
+								 &dvs_cameras[cam_id]);
+		if (Status != XST_SUCCESS) {
+			return Status;
+		}
+	}
+
+	/* Enable IO expander and sensor IIC interrupts */
+	XScuGic_Enable(IntcInstPtr, XPAR_XIICPS_1_INTR);
+	for (int cam_id = 0; cam_id < DVS_NUM; ++cam_id) {
+		XScuGic_Enable(IntcInstPtr, dvs_cameras[cam_id].axi_dma_intr_id);
+	}
+
+	Xil_ExceptionInit();
+
+	/*Register the interrupt controller handler with the exception table.*/
+	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT,
+								 (Xil_ExceptionHandler)XScuGic_InterruptHandler,
+								 (XScuGic *)IntcInstPtr);
+
+	return (XST_SUCCESS);
+}
 
 
 /*****************************************************************************/
@@ -171,23 +261,6 @@ void Xil_AssertCallbackRoutine(u8 *File, s32 Line) {
 
 /*****************************************************************************/
 /**
-* This function resets IMX274 camera sensor.
-*
-* @return	None.
-*
-* @note		None.
-*
-******************************************************************************/
-void CamReset(void)
-{
-	Xil_Out32(GPIO_SENSOR, 0x07);
-	Xil_Out32(GPIO_SENSOR, 0x06);
-	Xil_Out32(GPIO_SENSOR, 0x07);
-}
-
-
-/*****************************************************************************/
-/**
  *
  * Main function to initialize the video pipleline and process user input
  *
@@ -200,18 +273,7 @@ int main(void)
 {
 	u8 Response;
 	u32 Status;
-	u32 *RxBuf;
-	u8 TxBusy;
-	u8 BDInitCnt = 0;
-	u32 CoalCnt;
-	u32 LastBdSts;
-	u32 BdSts;
 
-	TxBusy = 0;
-
-#if DEBUG_FEATURES
-	xil_printf("Addr of NumOfTxFrames = %x\r\n",&NumOfTxFrames);
-#endif
 
 	/* Setup the default pipeline configuration parameters:
 	 * Look for Default ColorDepth manual setting just after SetColorDepth
@@ -299,114 +361,61 @@ int main(void)
 
 	/* Initialize platform */
 	init_platform();
+	initializeDVSCameras();
 
 	/* Initialize IIC */
-	Status = InitIIC();
+	Status = InitPsIIC();
 	if (Status != XST_SUCCESS) {
-		xil_printf(TXT_RED "\n\rIIC Init Failed \n\r" TXT_RST);
+		xil_printf(TXT_RED "\n\r PS IIC Init Failed \n\r" TXT_RST);
 		return XST_FAILURE;
- 	} else {
- 		print(TXT_GREEN "IIC init SUCCEEDED.\n\r" TXT_RST);
-		// 2. setup interrupt system
-		Status = SetupIicPsInterruptSystem();
-		if(Status != XST_SUCCESS){
-			return XST_FAILURE;
-		}
-
-
-		/*
-		 * 3. Setup the handlers for the IIC that will be called from the
-		 * interrupt context when data has been sent and received, specify a
-		 * pointer to the IIC driver instance as the callback reference so
-		 * the handlers are able to access the instance data.
-		 */
-		XIicPs_SetStatusHandler(&IicPsInstance, (void *) &IicPsInstance, Handler);
-		/*
-		 * 4. Set the IIC serial clock rate.
-		 */
-		XIicPs_SetSClk(&IicPsInstance, IIC_SCLK_RATE);
 	}
+
 
 	/* Turn on DVS Sensor */
-	Status = StartDVSSensor();
-	if (Status != XST_SUCCESS) {
-		print(TXT_RED "START DVS error.\n\r" TXT_RST);
-		return XST_FAILURE;
-	} else {
-		print(TXT_GREEN "START DVS SUCCEEDED.\n\r" TXT_RST);
+	for (int cam_id = 0; cam_id < DVS_NUM; ++cam_id) {
+		Status = StartDVSSensor(dvs_cameras[cam_id]);
+		if (Status != XST_SUCCESS) {
+			xil_printf(TXT_RED "START DVS(%d) error.\n\r" TXT_RST, cam_id);
+			return XST_FAILURE;
+		} else {
+			xil_printf(TXT_GREEN "START DVS(%d) SUCCEEDED.\n\r" TXT_RST, cam_id);
+		}
+
+		config_dvs_cap_path(&dvs_cameras[cam_id]);
 	}
 
-//	/* IIC interrupt handlers */
-//	SetupIICIntrHandlers();
-
-	/* Initialize CSIRXSS  */
-//	Status = InitializeCsiRxSs();
-	Status = InitializeDphy();
-	if (Status != XST_SUCCESS) {
-		xil_printf(TXT_RED "CSI Rx Ss Init failed status = %x.\r\n" TXT_RST, Status);
+	/* Initialize IRQ */
+	Status = SetupInterruptSystem();
+	if (Status == XST_FAILURE)
+	{
+		xil_printf(TXT_RED "IRQ init failed. \r\n" TXT_RST);
 		return XST_FAILURE;
 	}
 
-
-	/* MIPI colour depth in bits per clock */
-//	SetColorDepth();
 
 	print("---------------------------------\r\n");
-
 	/* Enable exceptions. */
 	Xil_AssertSetCallback((Xil_AssertCallback) Xil_AssertCallbackRoutine);
 	Xil_ExceptionEnable();
-
-	/* Reset Camera Sensor module through GPIO */
-//	xil_printf("Disable CAM_RST of Sensor through GPIO\r\n");
-//	CamReset();
-//	xil_printf("Sensor is Enabled\r\n");
-	CsiRxPrintRegStatus();
-
-	/* Program Camera sensor */
-//	MIPI_CONTROLLER_mWriteReg(MIPI_CONTROLLER_BASEADDR,
-//			MIPI_CONTROLLER_S00_AXI_SLV_REG0_OFFSET,
-//			0);
-//	sleep(1);
-//	MIPI_CONTROLLER_mWriteReg(MIPI_CONTROLLER_BASEADDR,
-//			MIPI_CONTROLLER_S00_AXI_SLV_REG0_OFFSET,
-//			2);
-	// frame header setting
-	MIPI_CONTROLLER_mWriteReg(MIPI_CONTROLLER_BASEADDR,
-				MIPI_CONTROLLER_S00_AXI_SLV_REG0_OFFSET,
-				1);
-	MIPI_CONTROLLER_mWriteReg(MIPI_CONTROLLER_BASEADDR,
-				MIPI_CONTROLLER_S00_AXI_SLV_REG1_OFFSET,
-				1);
-	// 1. control fifo with drop rate-----------------------------
-//	MIPI_CONTROLLER_mWriteReg(XPAR_MIPI_CONTROLLER_0_BASEADDR,
-//			MIPI_CONTROLLER_S00_AXI_SLV_REG3_OFFSET,
-//			10);
-
-	// 2. control fifo with fifo control -------------------------
-//	MIPI_CONTROLLER_mWriteReg(MIPI_CONTROLLER_BASEADDR,
-//			MIPI_CONTROLLER_S00_AXI_SLV_REG3_OFFSET,
-//			0);
-//	MIPI_CONTROLLER_mWriteReg(MIPI_CONTROLLER_BASEADDR,
-//			MIPI_CONTROLLER_S00_AXI_SLV_REG4_OFFSET,
-//			1);
-
 	//================ DVS sensor program ===================//
-	Status = ProgramDVSSensor();
-	if (Status != XST_SUCCESS) {
-		print(TXT_RED "PROGRAM DVS error.\n\r" TXT_RST);
-		return XST_FAILURE;
-	} else {
-		print(TXT_GREEN "PROGRAM DVS SUCCEEDED.\n\r" TXT_RST);
+	for (int cam_id = 0; cam_id < DVS_NUM; ++cam_id) {
+		start_dvs_cap_pipe(&dvs_cameras[cam_id]);
+		Status = ProgramDVSSensor(dvs_cameras[cam_id]);
+		if (Status != XST_SUCCESS) {
+			xil_printf(TXT_RED "PROGRAM DVS(%d) error.\n\r" TXT_RST, cam_id);
+			return XST_FAILURE;
+		} else {
+			xil_printf(TXT_GREEN "PROGRAM DVS(%d) SUCCEEDED.\n\r" TXT_RST, cam_id);
+		}
 	}
-
-	StartTx = 0;
-	TxTriggeredFlag = 0;
 
 	/* Main loop */
 	do {
 		sleep(1);
-		CsiRxPrintRegStatus();
+		for (int cam_id = 0; cam_id < DVS_NUM; cam_id++){
+			xil_printf("DVS_Camera(%d) Frame_cnt: %d  ", cam_id, dvs_cameras[cam_id].frm_cnt);
+		}
+		xil_printf("\r\n");
 	} while (1);
 
 
