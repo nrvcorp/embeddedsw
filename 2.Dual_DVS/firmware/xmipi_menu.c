@@ -62,11 +62,11 @@ extern void EnableDSI();
 extern XPipeline_Cfg Pipeline_Cfg;
 extern XPipeline_Cfg New_Cfg;
 
-extern u32 rd_ptr;
-extern u32 wr_ptr ;
-extern u32 frmrd_start;
-extern u32 frm_cnt ;
-extern u32 frm_cnt1;
+//extern u32 rd_ptr;
+//extern u32 wr_ptr ;
+//extern u32 frmrd_start;
+//extern u32 frm_cnt ;
+//extern u32 frm_cnt1;
 
 /**
  * This table contains the function pointers for all possible states.
@@ -323,8 +323,8 @@ xil_printf(" XVIDC_VM_3840x2160_30_P\n\r" TXT_RST);
 
 		default:
 			xil_printf(TXT_RED "Unknown option\n\r" TXT_RST);
-			PrintPipeConfig();
-			XMipi_DisplayResolutionMenu();
+//			PrintPipeConfig();
+//			XMipi_DisplayResolutionMenu();
 			return Menu;
 	}
 
@@ -332,8 +332,8 @@ xil_printf(" XVIDC_VM_3840x2160_30_P\n\r" TXT_RST);
 		/* Nothing needs to be done */
 		xil_printf(TXT_RED "Selected and Current resolution are same!\r\n" );
 		xil_printf(TXT_RST);
-		PrintPipeConfig();
-		XMipi_DisplayResolutionMenu();
+//		PrintPipeConfig();
+//		XMipi_DisplayResolutionMenu();
 		return Menu;
 	} else {
 		Pipeline_Cfg.VideoMode = New_Cfg.VideoMode;
@@ -341,23 +341,23 @@ xil_printf(" XVIDC_VM_3840x2160_30_P\n\r" TXT_RST);
 	}
 
 	/* shutdown pipeline */
-	CamReset();
+//	CamReset();
 //	DisableCSI();
-	rd_ptr = 4 ; wr_ptr = 0; frmrd_start  = 0;
-	frm_cnt = 0; frm_cnt1 = 0;
+//	rd_ptr = 4 ; wr_ptr = 0; frmrd_start  = 0;
+//	frm_cnt = 0; frm_cnt1 = 0;
 	/* Enable pipeline */
-	start_csi_cap_pipe(Pipeline_Cfg.VideoMode);
+//	start_csi_cap_pipe(Pipeline_Cfg.VideoMode);
 
 //	EnableCSI();
 	usleep(20000);
 //	SetupCameraSensor();
 
 	usleep(200000);
-	StartSensor();
+//	StartSensor();
 
 	usleep(200000);
 	TxRestartColorbar = 1;
-	PrintPipeConfig();
+//	PrintPipeConfig();
 
 	return Menu;
 }
@@ -460,8 +460,8 @@ static XMipi_MenuType XMipi_LanesMenu(XMipi_Menu *InstancePtr, u8 Input) {
 					|| (Pipeline_Cfg.VideoMode == XVIDC_VM_3840x2160_30_P)) {
 xil_printf(TXT_RED "Current resolution doesn't support single lane" TXT_RST);
 xil_printf("\n\r" TXT_RST);
-				PrintPipeConfig();
-				XMipi_DisplayLanesMenu();
+//				PrintPipeConfig();
+//				XMipi_DisplayLanesMenu();
 				return Menu;
 			}
 			New_Cfg.ActiveLanes = 1;
@@ -471,8 +471,8 @@ xil_printf("\n\r" TXT_RST);
 		case 2:
 			if (Pipeline_Cfg.VideoMode == XVIDC_VM_3840x2160_30_P) {
 xil_printf(TXT_RED "Current resolution doesn't support dual lane\n\r" TXT_RST);
-				PrintPipeConfig();
-				XMipi_DisplayLanesMenu();
+//				PrintPipeConfig();
+//				XMipi_DisplayLanesMenu();
 				return Menu;
 			}
 			New_Cfg.ActiveLanes = 2;
@@ -491,16 +491,16 @@ xil_printf(TXT_RED "Current resolution doesn't support dual lane\n\r" TXT_RST);
 
 		default:
 			xil_printf(TXT_RED "Unknown option\n\r" TXT_RST);
-			PrintPipeConfig();
-			XMipi_DisplayLanesMenu();
+//			PrintPipeConfig();
+//			XMipi_DisplayLanesMenu();
 			return Menu;
 	}
 
 	if (New_Cfg.ActiveLanes == Pipeline_Cfg.ActiveLanes) {
 		/* Nothing needs to be done */
 		xil_printf(TXT_RED "Selected and Current lanes are same!\r\n" TXT_RST);
-		PrintPipeConfig();
-		XMipi_DisplayLanesMenu();
+//		PrintPipeConfig();
+//		XMipi_DisplayLanesMenu();
 		return Menu;
 	} else {
 		Pipeline_Cfg.VideoMode = New_Cfg.VideoMode;
@@ -509,21 +509,21 @@ xil_printf(TXT_RED "Current resolution doesn't support dual lane\n\r" TXT_RST);
 
 	/* shutdown and enable pipeline */
 //	DisableCSI();
-	CamReset();
-	rd_ptr = 4 ; wr_ptr = 0; frmrd_start  = 0;
-	frm_cnt = 0; frm_cnt1 = 0;
+//	CamReset();
+//	rd_ptr = 4 ; wr_ptr = 0; frmrd_start  = 0;
+//	frm_cnt = 0; frm_cnt1 = 0;
 	usleep(20000);
 //	EnableCSI();
 	usleep(20000);
 //	SetupCameraSensor();
-	StartSensor();
+//	StartSensor();
 
 	usleep(200000);
 
 
 	TxRestartColorbar = 1;
 
-	PrintPipeConfig();
+//	PrintPipeConfig();
 
 	return Menu;
 }
