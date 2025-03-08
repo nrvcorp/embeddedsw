@@ -38,7 +38,8 @@ enum Mode
     CIS_DVS_OVERLAY,
     DVS_FPS_CHECK,
     CIS_DVS_DISPLAY_FPS,
-    CIS_ONLY_ROI
+    CIS_ONLY_ROI,
+    DVS_BIN_TO_VID
 };
 
 // Function declarations
@@ -86,6 +87,8 @@ void handleMode(Mode mode)
     cv::Mat frame_shared;
     cv::Rect dvs_rect, cis_rect;
     int dvs_width, dvs_height;
+    char bin_file_name[100];
+    char vid_file_name[100];
     switch (mode)
     {
     case CIS_DISPLAY:
@@ -309,6 +312,17 @@ void handleMode(Mode mode)
         delete cis;                    // Cleanup
         cis = NULL;
         break;
+    case DVS_BIN_TO_VID:
+        printf("convert the bin file from DVS_STORE mode to a grayscale video\n");
+        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, 1, DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, true);
+        cout << "Path to bin file:\n";
+        cin.getline(bin_file_name,100);
+        cout << "Path to video file:\n";
+        cin.getline(vid_file_name,100);
+        dvs->bin_to_vid((char*)bin_file_name, (char*)vid_file_name);
+        delete dvs;
+        dvs= NULL;
+        break;
     default:
         fprintf(stderr, "Error: Unknown mode\n");
         exit(EXIT_FAILURE);
@@ -332,11 +346,12 @@ Mode parseArguments(int argc, char *argv[])
         {"dvs-fps", no_argument, nullptr, 'f'},
         {"cis-dvs-fps", no_argument, nullptr, 'p'},
         {"cis-roi", no_argument, nullptr, 'i'},
+        {"dvs-bin-to-vid", no_argument, nullptr, 'v'},
         {nullptr, 0, nullptr, 0}};
 
     // Parse command-line arguments
     int opt;
-    while ((opt = getopt_long(argc, argv, "cdxswrbofpi", long_options, nullptr)) != -1)
+    while ((opt = getopt_long(argc, argv, "cdxswrbofpiv", long_options, nullptr)) != -1)
     {
         switch (opt)
         {
@@ -394,8 +409,11 @@ Mode parseArguments(int argc, char *argv[])
         case 'i':
             mode = CIS_ONLY_ROI;
             break;
+        case 'v':
+            mode = DVS_BIN_TO_VID;
+            break;
         default:
-            fprintf(stderr, "Usage: %s [--cis | --dvs | --check | --cis-dvs | --write-dvs | --roi | --bbox | --overlay | --dvs-fps | --cis-dvs-fps | --cis-roi]\n", argv[0]);
+            fprintf(stderr, "Usage: %s [--cis | --dvs | --check | --cis-dvs | --write-dvs | --roi | --bbox | --overlay | --dvs-fps | --cis-dvs-fps | --cis-roi | --dvs-bin-to-vid ]\n", argv[0]);
             exit(EXIT_FAILURE);
         }
     }

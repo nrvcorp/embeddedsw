@@ -39,8 +39,8 @@
 #define ROI_MIN_SCORE 25
 #define ROI_LINE_WIDTH 10
 #define ROI_INFLATION (float)(1)
-#define DVS_ROI_MIN_SIZE 250
-#define CIS_ROI_MIN_SIZE 416
+#define DVS_ROI_MIN_SIZE 100
+#define CIS_ROI_MIN_SIZE 224
 // #define CIS_DVS_OFFSET_X 0.315
 // #define CIS_DVS_OFFSET_Y -0.1
 // #define CIS_DVS_SCALE_X 0.8
