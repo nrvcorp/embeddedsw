@@ -501,8 +501,13 @@ void DVS::check_frame_drop()
 
         prev_frame_num = frame_num;
         prev_timestamp = timestamp;
+        // if(error_num > 1000) {
+        //     break;
+        // }
 
     }
+    // std::cout << "ERROR NUM: " << std::dec << error_num << std::endl;
+            
 }
 void DVS::fps_count(){
     int frame_count = 0;
@@ -568,7 +573,7 @@ void *DVS::double_buf_reader()
             if (!(check_init < 1000))
             {
                 error_num++;
-                std::cout << "ERROR NUM: " << std::dec << error_num << std::endl;
+                // std::cout << "ERROR NUM: " << std::dec << error_num << std::endl;
             }
         }
 
@@ -635,6 +640,47 @@ void *DVS::double_buf_bin_writer()
     file.close();
     free(bin_name);
     return nullptr;
+}
+
+void DVS::bin_to_vid(char* path_to_bin, char* output_vid_name)
+{
+    std::ifstream bin_file(path_to_bin, std::ios::binary);
+    
+    if (!bin_file) {
+        std::cerr << "Error opening binary file!" << std::endl;
+        return;
+    }
+    // std::ofstream vid_file(output_vid_name, std::ios_binary | std::ios_app);
+    //  if (!vid_file.is_open())
+    // {
+    //     perror("Failed to open file for writing.");
+    //     return nullptr;
+    // }
+    cv::VideoWriter videoWriter(output_vid_name, cv::VideoWriter::fourcc('M','J','P','G'),
+                                10, cv::Size(frame_w, frame_h), false);
+    while (bin_file.read(buffer, frame_bytes)) {
+         std::streamsize bytesRead = bin_file.gcount();  // Get actual bytes read
+
+        if (bytesRead < frame_bytes) {
+            if (bin_file.eof()) {
+                std::cout << "Reached end of file. Read only " << bytesRead << " bytes.\n";
+            } else if (bin_file.fail() || bin_file.bad()) {
+                std::cerr << "File read error occurred!\n";
+            }
+        } else {
+            // std::cout << "Read " << bytesRead << " bytes successfully.\n";
+            frame = cv::Mat::zeros(frame_h, frame_w, CV_8UC1);
+            convert2BitTo8Bit();
+            
+            // If the format is BGR but needs conversion
+            // cv::cvtColor(frame, frame, cv::COLOR_RGB2BGR);
+
+            videoWriter.write(frame);
+        }
+        
+    }
+    bin_file.close();
+    videoWriter.release();
 }
 
 
@@ -916,6 +962,16 @@ void DVS::draw_square_roi(Bbox* b_box, int x_min, int y_min, int x_max, int y_ma
         inflated_size = roi_min_size;
     }
 
+    int inflated_size_y = (int)(roi_inflation_ratio *(y_max-y_min));
+    if (inflated_size_y > height)
+    {
+        inflated_size_y = height;
+    }
+    else if (inflated_size_y < roi_min_size)
+    {
+        inflated_size_y = roi_min_size;
+    }
+
     //give margin around x_max and x_min to determine ROI position 
     int min_offset = (inflated_size - (x_max-x_min)) >> 1;
 
@@ -937,23 +993,23 @@ void DVS::draw_square_roi(Bbox* b_box, int x_min, int y_min, int x_max, int y_ma
     }
 
     //give margin around y_max and y_min to determine ROI position 
-    int min_offset_y = (inflated_size-(y_max-y_min))>>1;
+    int min_offset_y = (inflated_size_y-(y_max-y_min))>>1;
 
     //if ROI exceeds frame, move it inside
     if (y_min - min_offset_y < 0)
     {
         b_box->ly = 0;
-        b_box->hy = inflated_size - 1;
+        b_box->hy = inflated_size_y - 1;
     }
-    else if (y_min + inflated_size - min_offset_y >= height)
+    else if (y_min + inflated_size_y - min_offset_y >= height)
     {
         b_box->hy = height;
-        b_box->ly = height - inflated_size + 1;
+        b_box->ly = height - inflated_size_y + 1;
     }
     else
     {
         b_box->ly = y_min - min_offset_y;
-        b_box->hy = y_min- min_offset_y + inflated_size - 1;
+        b_box->hy = y_min- min_offset_y + inflated_size_y - 1;
     }
 }
 
@@ -1074,7 +1130,7 @@ int DVS::new_ROI(Bbox* dvs, Bbox* cis){
                 cur_val = roi_event_score;//2+width_count;//((pix_val-128)>>2)+width_count;
             }else if(pix_val < 128){
                 cur_val = roi_event_score;//2+width_count;//((128-pix_val)>>2)+width_count;
-            }else{\
+            }else{
                 cur_val = -1;
             }
             //cur_score : max value of partial sequence whose right end is w

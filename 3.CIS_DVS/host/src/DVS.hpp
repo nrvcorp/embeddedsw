@@ -277,6 +277,12 @@ public:
     * inside directory ./bin_files
     */
     void *double_buf_bin_writer();
+    /**
+    * Reconstructs a video file from the bin file stored by DVS_STORE mode (double_buf_reader and double_buf_bin_writer)
+    * @param path_to_bin path to input bin file
+    * @param output_vid_name path to output video name (mp4)
+    */
+    void bin_to_vid(char* path_to_bin, char* output_vid_name);
    /**
     * draw a square roi bounding box including coordinates (x_min,y_min), (x_max, y_max)
     * inside frame of size (width, height)
