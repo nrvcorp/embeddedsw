@@ -115,7 +115,19 @@ void handleMode(Mode mode)
     case DVS_CHECK_FRAME_DROP:
         printf("DVS only check mode\n");
         dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, 1, DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager);
-        dvs->check_frame_drop();
+        if (dvs)
+        {
+            threads.emplace_back([dvs]()
+                                 { dvs->check_frame_drop(); });
+             setThreadPriority(threads.back()); 
+        }
+        for (auto &t : threads)
+        {
+            if (t.joinable())
+            {
+                t.join();
+            }
+        }
         delete dvs; // Cleanup
         dvs = NULL;
         break;
@@ -163,13 +175,13 @@ void handleMode(Mode mode)
             threads.emplace_back([dvs]()
                                  { dvs->double_buf_bin_writer(); });
         }
-
+        setThreadPriority(threads.back());  // Set priority after thread creation
         if (dvs)
         {
             threads.emplace_back([dvs]()
                                  { dvs->double_buf_reader(); });
         }
-
+        setThreadPriority(threads.back());  // Set priority after thread creation
         // Wait for all threads to complete
         for (auto &t : threads)
         {
