@@ -4,6 +4,17 @@
 #include "PCIe.hpp"
 #include "MutexManager.hpp"
 
+void setThreadPriority(std::thread &t) {
+    pthread_t handle = t.native_handle();
+    
+    // Set scheduling parameters
+    sched_param sch;
+    sch.sched_priority = sched_get_priority_max(SCHED_FIFO); // Highest priority
+
+    if (pthread_setschedparam(handle, SCHED_FIFO, &sch) != 0) {
+        std::cerr << "Failed to set thread priority.\n";
+    }
+}
 
 DVS::DVS( //normal constructor
     int frame_h, int frame_w,
@@ -474,13 +485,18 @@ void DVS::check_frame_drop()
     int frame_num;
     uint32_t timestamp;
     auto start = std::chrono::high_resolution_clock::now();
-
+    while(1){
+        read_frame(buffer);
+        if(check_init<3000){
+            check_init++;
+        }else{
+            break;
+        }   
+    }
     while (1)
     {
         //wait some time after the sensor starts up
-        if(check_init<1000){
-            check_init++;
-        }
+
         //get frame num and headers 
         read_frame(buffer);
         decode_header(buffer, frame_num, timestamp);
@@ -491,12 +507,9 @@ void DVS::check_frame_drop()
         //check if the frame num increments by 1 consistently
         if ((prev_frame_num + 1 != frame_num) && (prev_frame_num != (frame_num + 255)))
         {
-            if (!(check_init < 1000))
-            {
                 //if frame num is inconsistent, print error message
                 error_num++;
                 std::cout << "ERROR NUM: " << std::dec << error_num << std::endl;
-            }
         }
 
         prev_frame_num = frame_num;
@@ -543,14 +556,15 @@ void *DVS::double_buf_reader()
     int frame_num;
     uint32_t timestamp;
     char *dvs_buffer;
-
+    while(check_init < 3000)
+    {
+        read_frame(buffer);
+        check_init++;
+    }
     //while reading raw sensor data, check frame num consistency too
     while (1)
     {
-        if (check_init < 1000)
-        {
-            check_init++;
-        }
+       
 
         //maintain 2 buffers and 2 mutexes for double buffering
         if (double_buffer_idx == 0)
@@ -570,11 +584,8 @@ void *DVS::double_buf_reader()
         decode_header(dvs_buffer, frame_num, timestamp);
         if ((prev_frame_num + 1 != frame_num) && (prev_frame_num != (frame_num + 255)))
         {
-            if (!(check_init < 1000))
-            {
-                error_num++;
-                // std::cout << "ERROR NUM: " << std::dec << error_num << std::endl;
-            }
+            error_num++;
+            std::cout << "ERROR NUM: " << std::dec << error_num << std::endl;
         }
 
         prev_frame_num = frame_num;

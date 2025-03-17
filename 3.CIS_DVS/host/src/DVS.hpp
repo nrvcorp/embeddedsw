@@ -30,6 +30,12 @@
 #include "MutexManager.hpp"
 #include "bbox.hpp"
 
+/**
+ * Function to set thread priority to highest.
+ * @param t : thread alias to set priority to 
+ */
+void setThreadPriority(std::thread &t);
+
 //class to manage DVS object
 class DVS
 {
@@ -215,7 +221,7 @@ public:
     * @param frame_w CIS frame width in pixels
     * @param frame_h CIS frame height in pixels 
     * @param roi_event_score_ score for including event pixel in row-wise sliced ROI
-    * @param roi_min_score_ min score for considering particular row as part of final ROI
+    * @parvoid setThreadPriority(std::thread &t)am roi_min_score_ min score for considering particular row as part of final ROI
     * @param roi_line_width_ required number of consecutive rows inside DVS frame with high scores
     * @param roi_min_size_ minimum ROI bounding box size (in pixels)
     * @param roi_inflation_ratio_ enlarge bounding box size to center and zoom out ROI for NPU object detection purposes 
