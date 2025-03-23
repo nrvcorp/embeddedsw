@@ -243,6 +243,13 @@ public:
      */
     void display_stream(bool is_flip = false);
     /**
+     * @brief for use with CIS::save_png_stream
+     * Saves DVS frames in PNG format in unison with CIS::save_png_stream saving CIS images at 60Hz.
+     * @param output_folder_name path to folder to output DVS png images to
+     * @param is_flip horizontal flip image
+     */
+    void save_png_stream(char *output_folder_name, bool is_flip);
+    /**
      * writes sensor data to double buffer
      * skips 1 frame for every 2 frames to match convert2bitto8bit latency
      */
@@ -288,6 +295,12 @@ public:
      * @param output_vid_name path to output video name (mp4)
      */
     void bin_to_vid(char *path_to_bin, char *output_vid_name);
+    /**
+     * Reconstructs a collection of PNG images from the bin file stored by DVS_STORE mode (double_buf_reader and double_buf_bin_writer)
+     * @param path_to_bin path to input bin file
+     * @param output_folder_name path to where png files will be stored
+     */
+    void bin_to_png(char *path_to_bin, char *output_folder_name);
     /**
      * draw a square roi bounding box including coordinates (x_min,y_min), (x_max, y_max)
      * inside frame of size (width, height)

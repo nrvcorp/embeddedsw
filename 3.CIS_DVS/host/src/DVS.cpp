@@ -357,6 +357,57 @@ void DVS::display_stream(bool is_flip)
     }
 }
 
+void DVS::save_png_stream(char *output_folder_name, bool is_flip)
+{
+    // double fps = 0.0;
+    // int frameCount = 0;
+    // double startTime = cv::getTickCount();
+    int frame_count = 0;
+    std::ostringstream filename;
+    filename << output_folder_name << "/frame_" << std::setw(5) << std::setfill('0') << frame_count << ".png";
+    while (true)
+    {
+        // initialize cv::Mat frame
+        frame = cv::Mat::zeros(frame_h, frame_w, CV_8UC1);
+
+        // stack frames using member functions
+        for (int frame_grp_num = 0; frame_grp_num < accum_num; frame_grp_num++)
+        {
+            read_frame(buffer);
+            if (frame_grp_num == 0)
+            {
+                convert2BitTo8Bit();
+            }
+            else
+            {
+                convert2BitTo8Bit_accum();
+            }
+        }
+        // show image
+        if (is_flip)
+        {
+            cv::flip(frame, frame, 0);
+        }
+        if (thread_mutex->try_lock_reader() == 1)
+        {
+            // Save the frame as a PNG image
+            cv::imwrite(filename.str(), frame);
+            thread_mutex->unlock_multiple_reader();
+            frame_count++;
+            // Generate filename for the PNG image
+            filename << output_folder_name << "/frame_" << std::setw(5) << std::setfill('0') << frame_count << ".png";
+        }
+        // press ESC to quit
+        if (cv::waitKey(1) == 27)
+        {
+
+            // free frame
+            frame.release();
+            break;
+        }
+    }
+}
+
 void DVS::double_buf_display_fps_writer()
 // note : thread_mutex needs to be an array like thread_mutex[2]
 {
@@ -569,6 +620,7 @@ void *DVS::double_buf_reader()
         read_frame(buffer);
         check_init++;
     }
+    printf("starting bin save...\n");
     // while reading raw sensor data, check frame num consistency too
     while (1)
     {
@@ -708,6 +760,51 @@ void DVS::bin_to_vid(char *path_to_bin, char *output_vid_name)
     videoWriter.release();
 }
 
+void DVS::bin_to_png(char *path_to_bin, char *output_folder_name)
+{
+    std::ifstream bin_file(path_to_bin, std::ios::binary);
+
+    if (!bin_file)
+    {
+        std::cerr << "Error opening binary file!" << std::endl;
+        return;
+    }
+
+    int frame_count = 0; // Counter for frame naming
+
+    while (bin_file.read(buffer, frame_bytes))
+    {
+        std::streamsize bytesRead = bin_file.gcount(); // Get actual bytes read
+        if (bytesRead < frame_bytes)
+        {
+            if (bin_file.eof())
+            {
+                std::cout << "Reached end of file. Read only " << bytesRead << " bytes.\n";
+            }
+            else if (bin_file.fail() || bin_file.bad())
+            {
+                std::cerr << "File read error occurred!\n";
+            }
+        }
+        else
+        {
+            // Initialize frame and convert data
+            frame = cv::Mat::zeros(frame_h, frame_w, CV_8UC1);
+            convert2BitTo8Bit();
+
+            // Generate filename for the PNG image
+            std::ostringstream filename;
+            filename << output_folder_name << "/frame_" << std::setw(5) << std::setfill('0') << frame_count << ".png";
+
+            // Save the frame as a PNG image
+            cv::imwrite(filename.str(), frame);
+
+            frame_count++; // Increment frame count
+        }
+    }
+    bin_file.close();
+}
+
 void DVS::crop_coord(int img_show, int is_update, bool is_flip, bool print_latency)
 {
     float algorithm_avg = 0.0, frame_read_avg = 0.0;
@@ -742,12 +839,12 @@ void DVS::crop_coord(int img_show, int is_update, bool is_flip, bool print_laten
             }
             if (print_latency)
             {
-                algoritm_start = std::chrono::high_resolution_clock::now();
+                algorithm_start = std::chrono::high_resolution_clock::now();
             }
             sum += event_accum(x_count, y_count, is_flip);
             if (print_latency)
             {
-                algoritm_end = std::chrono::high_resolution_clock::now();
+                algorithm_end = std::chrono::high_resolution_clock::now();
                 algorithm_elapsed = algorithm_end - algorithm_start;
                 algorithm_avg += algorithm_elapsed.count();
             }
@@ -755,13 +852,13 @@ void DVS::crop_coord(int img_show, int is_update, bool is_flip, bool print_laten
         Bbox b_box_dvs, b_box_cis;
         if (print_latency)
         {
-            algoritm_start = std::chrono::high_resolution_clock::now();
+            algorithm_start = std::chrono::high_resolution_clock::now();
         }
         // calculate event ROI in the form of a bounding box
         int is_roi = event_roi(x_count, y_count, sum, &b_box_dvs, &b_box_cis);
         if (print_latency)
         {
-            algoritm_end = std::chrono::high_resolution_clock::now();
+            algorithm_end = std::chrono::high_resolution_clock::now();
             algorithm_elapsed = algorithm_end - algorithm_start;
             algorithm_avg += algorithm_elapsed.count();
         }
@@ -1349,13 +1446,13 @@ void DVS::crop_new_ROI(int img_show, int is_update, bool is_flip, bool print_lat
 
         if (print_latency)
         {
-            algoritm_start = std::chrono::high_resolution_clock::now();
+            algorithm_start = std::chrono::high_resolution_clock::now();
         }
         // calculate event ROI in the form of a bounding box
         int is_roi = new_ROI(&b_box_dvs, &b_box_cis);
         if (print_latency)
         {
-            algoritm_end = std::chrono::high_resolution_clock::now();
+            algorithm_end = std::chrono::high_resolution_clock::now();
             algorithm_elapsed = algorithm_end - algorithm_start;
             algorithm_avg += algorithm_elapsed.count();
         }

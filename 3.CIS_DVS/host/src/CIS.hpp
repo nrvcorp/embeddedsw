@@ -97,6 +97,12 @@ public:
      */
     void display_stream();
     /**
+     @brief for use with DVS::save_png_stream
+     * Saves CIS frames in PNG format at 60Hz, in unison with DVS::save_png_sream
+     * @param output_folder_name path to folder to output CIS png images to
+     */
+    void save_png_stream(char *output_folder_name);
+    /**
      * read frame safely from ZCU106 over PCI express using ready and done flags
      *
      * reads from MMAP-io:

@@ -361,13 +361,13 @@ void handleMode(Mode mode)
         if (cis)
         {
             threads.emplace_back([cis, bin_file_name]()
-                                 { cis->save_png_stream(bin_file_name); });
+                                 { cis->save_png_stream((char *)bin_file_name); });
         }
 
         if (dvs)
         {
             threads.emplace_back([dvs, vid_file_name]()
-                                 { dvs->save_png_stream(vid_file_name); });
+                                 { dvs->save_png_stream((char *)vid_file_name, true); });
         }
 
         // Wait for all threads to complete
