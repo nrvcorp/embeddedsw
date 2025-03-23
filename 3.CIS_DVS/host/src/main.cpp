@@ -202,9 +202,9 @@ void handleMode(Mode mode)
         dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, (DVS_FPS / DISPLAY_FPS), DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, &bbox, &bbox_mutex, &terminate);
         dvs->set_DVS_ROI(ROI_EVENT_SCORE, ROI_MIN_SCORE, ROI_LINE_WIDTH, DVS_ROI_MIN_SIZE, 1.0);
         // run old algorithm
-        // dvs->crop_coord(1,1,true, true);
+        dvs->crop_coord(1, 1, true, true);
         // run new algorithm
-        dvs->crop_new_ROI(1, 1, true, true);
+        // dvs->crop_new_ROI(1, 1, true, true);
         dvs = NULL;
         delete dvs;
         break;
@@ -352,7 +352,7 @@ void handleMode(Mode mode)
     case CIS_DVS_STORE_PNG:
         printf("Save CIS and DVS images in PNG format, synchronized at 60FPS\n");
         cis = new CIS(CIS_FRAME_H, CIS_FRAME_W, CIS_FRAME_RDY_BASEADDR, CIS_FRAME_BASEADDR, CIS_BUFFER_NUM, C2H_DEVICE_CIS, H2C_DEVICE_CIS, mutexManager, &bbox_mutex, &bbox, &terminate);
-        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, 1, DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, &bbox, &bbox_mutex, &terminate);
+        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, /*1*/ (DVS_FPS / DISPLAY_FPS), DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, &bbox, &bbox_mutex, &terminate);
         // set relative parameters between the two sensors
         cis->set_DVS(CIS_DVS_SCALE_X * CIS_FRAME_W / DVS_FRAME_W, CIS_DVS_SCALE_Y * CIS_FRAME_H / DVS_FRAME_H, CIS_DVS_OFFSET_X, CIS_DVS_OFFSET_Y);
         dvs->set_CIS(CIS_DVS_SCALE_X * CIS_FRAME_W / DVS_FRAME_W, CIS_DVS_SCALE_Y * CIS_FRAME_H / DVS_FRAME_H, CIS_DVS_OFFSET_X, CIS_DVS_OFFSET_Y, CIS_FRAME_W, CIS_FRAME_H, ROI_EVENT_SCORE, ROI_MIN_SCORE, ROI_LINE_WIDTH, CIS_ROI_MIN_SIZE, ROI_INFLATION);

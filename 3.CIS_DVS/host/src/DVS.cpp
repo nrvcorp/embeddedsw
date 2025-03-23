@@ -389,7 +389,6 @@ void DVS::save_png_stream(char *output_folder_name, bool is_flip)
         }
         if (thread_mutex->try_lock_reader() == 1)
         {
-            printf("waiting here, frame_count = %d\n", frame_count);
             // Save the frame as a PNG image
             std::ostringstream filename;
             filename << output_folder_name << "/frame_" << std::setw(5) << std::setfill('0') << frame_count << ".png";
