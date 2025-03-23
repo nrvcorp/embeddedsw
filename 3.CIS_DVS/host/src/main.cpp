@@ -39,7 +39,9 @@ enum Mode
     DVS_FPS_CHECK,
     CIS_DVS_DISPLAY_FPS,
     CIS_ONLY_ROI,
-    DVS_BIN_TO_VID
+    DVS_BIN_TO_VID,
+    DVS_BIN_TO_PNG,
+    CIS_DVS_STORE_PNG
 };
 
 // Function declarations
@@ -119,7 +121,7 @@ void handleMode(Mode mode)
         {
             threads.emplace_back([dvs]()
                                  { dvs->check_frame_drop(); });
-             setThreadPriority(threads.back()); 
+            setThreadPriority(threads.back());
         }
         for (auto &t : threads)
         {
@@ -175,13 +177,13 @@ void handleMode(Mode mode)
             threads.emplace_back([dvs]()
                                  { dvs->double_buf_bin_writer(); });
         }
-        setThreadPriority(threads.back());  // Set priority after thread creation
+        setThreadPriority(threads.back()); // Set priority after thread creation
         if (dvs)
         {
             threads.emplace_back([dvs]()
                                  { dvs->double_buf_reader(); });
         }
-        setThreadPriority(threads.back());  // Set priority after thread creation
+        setThreadPriority(threads.back()); // Set priority after thread creation
         // Wait for all threads to complete
         for (auto &t : threads)
         {
@@ -199,8 +201,10 @@ void handleMode(Mode mode)
         printf("DVS ROI mode\n ");
         dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, (DVS_FPS / DISPLAY_FPS), DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, &bbox, &bbox_mutex, &terminate);
         dvs->set_DVS_ROI(ROI_EVENT_SCORE, ROI_MIN_SCORE, ROI_LINE_WIDTH, DVS_ROI_MIN_SIZE, 1.0);
-        // dvs->crop_coord(1,1,true);
-        dvs->crop_new_ROI(1, 1, true);
+        // run old algorithm
+        // dvs->crop_coord(1,1,true, true);
+        // run new algorithm
+        dvs->crop_new_ROI(1, 1, true, true);
         dvs = NULL;
         delete dvs;
         break;
@@ -328,12 +332,56 @@ void handleMode(Mode mode)
         printf("convert the bin file from DVS_STORE mode to a grayscale video\n");
         dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, 1, DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, true);
         cout << "Path to bin file:\n";
-        cin.getline(bin_file_name,100);
+        cin.getline(bin_file_name, 100);
         cout << "Path to video file:\n";
-        cin.getline(vid_file_name,100);
-        dvs->bin_to_vid((char*)bin_file_name, (char*)vid_file_name);
+        cin.getline(vid_file_name, 100);
+        dvs->bin_to_vid((char *)bin_file_name, (char *)vid_file_name);
         delete dvs;
-        dvs= NULL;
+        dvs = NULL;
+        break;
+    case DVS_BIN_TO_PNG:
+        printf("convert the bin file from DVS_STORE mode to a collection of PNGs\n");
+        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, 1, DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, true);
+        cout << "Path to bin file:\n";
+        cin.getline(bin_file_name, 100);
+        cout << "Path to folder that will contain PNG images:\n";
+        cin.getline(vid_file_name, 100);
+        dvs->bin_to_png((char *)bin_file_name, (char *)vid_file_name);
+        delete dvs;
+        break;
+    case CIS_DVS_STORE_PNG:
+        printf("Save CIS and DVS images in PNG format, synchronized at 60FPS\n");
+        cis = new CIS(CIS_FRAME_H, CIS_FRAME_W, CIS_FRAME_RDY_BASEADDR, CIS_FRAME_BASEADDR, CIS_BUFFER_NUM, C2H_DEVICE_CIS, H2C_DEVICE_CIS, mutexManager, &bbox_mutex, &bbox, &terminate);
+        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, 1, DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, &bbox, &bbox_mutex, &terminate);
+        cout << "Path to folder that will contain CIS images:\n";
+        cin.getline(bin_file_name, 100);
+        cout << "Path to folder that will contain DVS images:\n";
+        cin.getline(vid_file_name, 100);
+        // Start threads for CIS and DVS
+        if (cis)
+        {
+            threads.emplace_back([cis, bin_file_name]()
+                                 { cis->save_png_stream(bin_file_name); });
+        }
+
+        if (dvs)
+        {
+            threads.emplace_back([dvs, vid_file_name]()
+                                 { dvs->save_png_stream(vid_file_name); });
+        }
+
+        // Wait for all threads to complete
+        for (auto &t : threads)
+        {
+            if (t.joinable())
+            {
+                t.join();
+            }
+        }
+        delete cis;
+        delete dvs;
+        dvs = NULL;
+        cis = NULL;
         break;
     default:
         fprintf(stderr, "Error: Unknown mode\n");
@@ -359,11 +407,13 @@ Mode parseArguments(int argc, char *argv[])
         {"cis-dvs-fps", no_argument, nullptr, 'p'},
         {"cis-roi", no_argument, nullptr, 'i'},
         {"dvs-bin-to-vid", no_argument, nullptr, 'v'},
+        {"dvs-bin-to-png", no_argument, nullptr, 'g'},
+        {"cis-dvs-store-png", no_argument, nullptr, 't'},
         {nullptr, 0, nullptr, 0}};
 
     // Parse command-line arguments
     int opt;
-    while ((opt = getopt_long(argc, argv, "cdxswrbofpiv", long_options, nullptr)) != -1)
+    while ((opt = getopt_long(argc, argv, "cdxswrbofpivgt", long_options, nullptr)) != -1)
     {
         switch (opt)
         {
@@ -419,13 +469,26 @@ Mode parseArguments(int argc, char *argv[])
             mode = CIS_DVS_DISPLAY_FPS;
             break;
         case 'i':
+            // runs background subtraction on CIS images
             mode = CIS_ONLY_ROI;
             break;
         case 'v':
+            // converts bin file to .avi video file
+            // the path to bin file, and the path to video is required
             mode = DVS_BIN_TO_VID;
             break;
+        case 'g':
+            // converts bin file into a collection of .png files
+            //  the path to bin file, and the path to png file folder is requred
+            mode = DVS_BIN_TO_PNG;
+            break;
+        case 't':
+            // captures CIS and DVS images in png format, synchronized at 60fps
+            // the path to CIS, and the path to DVS image folders are required.
+            mode = CIS_DVS_STORE_PNG;
+            break;
         default:
-            fprintf(stderr, "Usage: %s [--cis | --dvs | --check | --cis-dvs | --write-dvs | --roi | --bbox | --overlay | --dvs-fps | --cis-dvs-fps | --cis-roi | --dvs-bin-to-vid ]\n", argv[0]);
+            fprintf(stderr, "Usage: %s [--cis | --dvs | --check | --cis-dvs | --write-dvs | --roi | --bbox | --overlay | --dvs-fps | --cis-dvs-fps | --cis-roi | --dvs-bin-to-vid | --dvs-bin-to-png | --cis-dvs-store-png ]\n", argv[0]);
             exit(EXIT_FAILURE);
         }
     }
