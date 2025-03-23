@@ -1,0 +1,1 @@
+cmd_/home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_zcu106/xdma_zcu106.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_zcu106/xdma_zcu106.ko /home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_zcu106/xdma_zcu106.o /home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_zcu106/xdma_zcu106.mod.o;  true

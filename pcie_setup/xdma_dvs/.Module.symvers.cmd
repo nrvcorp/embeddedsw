@@ -1,0 +1,1 @@
+cmd_/home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_dvs/Module.symvers := sed 's/\.ko$$/\.o/' /home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_dvs/modules.order | scripts/mod/modpost -m -a  -o /home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_dvs/Module.symvers -e -i Module.symvers   -T -
