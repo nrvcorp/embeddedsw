@@ -239,6 +239,35 @@ void CIS::display_stream()
     }
 }
 
+void CIS::save_png_stream(char *output_folder_name)
+{
+    int frame_count = 0;
+    std::ostringstream filename;
+    frame = cv::Mat::zeros(frame_h, frame_w, CV_8UC3);
+    while (true)
+    {
+        // read frame through PCIE
+        read_frame(frame);
+        cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
+
+        // save png, then signal DVS::save_png_stream
+        thread_mutex->lock_single_writer();
+        // Generate filename for the PNG image
+        filename << output_folder_name << "/frame_" << std::setw(5) << std::setfill('0') << frame_count << ".png";
+        // Save the frame as a PNG image
+        cv::imwrite(filename.str(), frame);
+        thread_mutex->unlock_single_writer(1);
+        frame_count++; // Increment frame count
+
+        // exit if ESC is pressed
+        if (cv::waitKey(1) == 27)
+        {
+            frame.release();
+            break;
+        }
+    }
+}
+
 void CIS::crop_dvs_roi()
 {
     frame = cv::Mat::zeros(frame_h, frame_w, CV_8UC3);
