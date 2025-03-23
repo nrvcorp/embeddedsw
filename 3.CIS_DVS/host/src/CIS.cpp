@@ -242,7 +242,7 @@ void CIS::display_stream()
 void CIS::save_png_stream(char *output_folder_name)
 {
     int frame_count = 0;
-    std::ostringstream filename;
+
     frame = cv::Mat::zeros(frame_h, frame_w, CV_8UC3);
     while (true)
     {
@@ -251,8 +251,10 @@ void CIS::save_png_stream(char *output_folder_name)
         cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
 
         // save png, then signal DVS::save_png_stream
+
         thread_mutex->lock_single_writer();
         // Generate filename for the PNG image
+        std::ostringstream filename;
         filename << output_folder_name << "/frame_" << std::setw(5) << std::setfill('0') << frame_count << ".png";
         // Save the frame as a PNG image
         cv::imwrite(filename.str(), frame);
