@@ -19,6 +19,8 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+#include "dvs_roi_alg.hpp"
+
 using namespace cv;
 using namespace std;
 
@@ -42,22 +44,24 @@ int main(int argc, char *argv[])
 
 void handleMode(Mode mode)
 {
-    switch(mode)
-    {
-        case DVS_ROI_AVG_BASE:
-            printf("DVS ROI AVG mode\n");
+    char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/pliers/frame_00010.png";
 
-            break;
-        case DVS_ROI_PROPOSED:
-            printf("DVS ROI PROPOSED mode\n");
-            
-            break;
-        default:
-            fprintf(stderr, "Error: Unknown mode \n");
-            exit(EXIT_FAILURE);
+    switch (mode)
+    {
+    case DVS_ROI_AVG_BASE:
+        printf("DVS ROI AVG mode\n");
+        int status;
+        status = dvs_roi_average_based(img_file_pth);
+        break;
+    case DVS_ROI_PROPOSED:
+        printf("DVS ROI PROPOSED mode\n");
+
+        break;
+    default:
+        fprintf(stderr, "Error: Unknown mode \n");
+        exit(EXIT_FAILURE);
     }
 }
-
 
 Mode parseArguments(int argc, char *argv[])
 {
