@@ -26,7 +26,8 @@ using namespace std;
 
 enum Mode
 {
-    DVS_ROI_AVG_BASE = 1,
+    DVS_ROI_CLUSTERING = 1,
+    DVS_ROI_AVG_BASE = 2,
     DVS_ROI_PROPOSED
 };
 
@@ -44,22 +45,127 @@ int main(int argc, char *argv[])
 
 void handleMode(Mode mode)
 {
-    char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/pliers/frame_00010.png";
+    const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/glasses/frame_00005.png";
+    // const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/pliers/frame_00010.png";
+
+    cv::Mat frame = cv::imread(img_file_pth, cv::IMREAD_GRAYSCALE);
+    if (frame.empty())
+    {
+        std::cerr << "Image not found!" << std::endl;
+    }
 
     switch (mode)
     {
-    case DVS_ROI_AVG_BASE:
-        printf("DVS ROI AVG mode\n");
-        int status;
-        status = dvs_roi_average_based(img_file_pth);
-        break;
-    case DVS_ROI_PROPOSED:
-        printf("DVS ROI PROPOSED mode\n");
+    case DVS_ROI_CLUSTERING:
+    {
+        printf("DVS ROI Clustering mode \n");
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        // Run algorithm...
+        std::vector<std::vector<cv::Point>> clusters;
+        std::vector<Bbox> rois = dvs_roi_cluster_tracker(
+            frame,
+            clusters,
+            200,
+            1000);
+
+        auto end = std::chrono::high_resolution_clock::now();
+        double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+        std::cout << "Algorithm took " << elapsed_ms << " ms" << std::endl;
+
+        std::cout << clusters.size() << std::endl;
+        // Convert grayscale to color for visualization
+        cv::cvtColor(frame, frame, cv::COLOR_GRAY2BGR);
+        // Assign white color to background pixels (128 in grayscale)
+        frame.setTo(cv::Scalar(255, 255, 255), frame == 128);
+
+        // Assign random colors to each cluster
+        cv::RNG rng(12345);
+        for (const auto &cluster : clusters)
+        {
+            if (cluster.size() < 20)
+                continue; // skip small clusters
+            cv::Scalar color(rng.uniform(50, 255), rng.uniform(50, 255), rng.uniform(50, 255));
+            for (const auto &pt : cluster)
+            {
+                frame.at<cv::Vec3b>(pt.y, pt.x) = cv::Vec3b(color[0], color[1], color[2]);
+            }
+        }
+
+        // Draw all ROIs
+        for (const auto &box : rois)
+        {
+            printf("bbox: (%d, %d), (%d, %d) \n", box.lx, box.hx, box.ly, box.hy);
+            cv::rectangle(frame, cv::Point(box.lx, box.ly), cv::Point(box.hx, box.hy), cv::Scalar(255), 2);
+        }
+        cv::imshow("DVS Cluster Tracker ROI", frame);
+        cv::waitKey(0);
 
         break;
+    }
+
+    case DVS_ROI_AVG_BASE:
+    {
+        printf("DVS ROI AVG mode\n");
+        auto start = std::chrono::high_resolution_clock::now();
+
+        Bbox bbox = dvs_roi_average_based(
+            frame,
+            10 /* roi_line_min_threshold */);
+
+        auto end = std::chrono::high_resolution_clock::now();
+        double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+        std::cout << "Algorithm took " << elapsed_ms << " ms" << std::endl;
+
+        printf("x_min, x_max: %d, %d, y_min, y_max: %d, %d\n", bbox.lx, bbox.hx, bbox.ly, bbox.hy);
+        // Draw the ROI rectangle on the image (in white)
+        cv::Point p1(bbox.lx, bbox.ly);
+        cv::Point p2(bbox.hx, bbox.hy);
+        // Draw the ROI rectangle on the image (in white)
+        cv::rectangle(frame, p1, p2, cv::Scalar(255), 2, cv::LINE_8);
+
+        // Show the image in a window
+        cv::imshow("DVS ROI", frame);
+        cv::waitKey(0); // Wait for a key press to close the window
+        cv::destroyAllWindows();
+        break;
+    }
+
+    case DVS_ROI_PROPOSED:
+    {
+        printf("DVS ROI PROPOSED mode\n");
+        auto start = std::chrono::high_resolution_clock::now();
+
+        Bbox bbox = dvs_roi_proposed(
+            frame,
+            5,  /* roi_event_score */
+            25, /* row_score_threshold */
+            10 /* roi_height_min_threshold */);
+
+        auto end = std::chrono::high_resolution_clock::now();
+        double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+        std::cout << "Algorithm took " << elapsed_ms << " ms" << std::endl;
+
+        printf("x_min, x_max: %d, %d, y_min, y_max: %d, %d\n", bbox.lx, bbox.hx, bbox.ly, bbox.hy);
+        // Draw the ROI rectangle on the image (in white)
+        cv::Point p1(bbox.lx, bbox.ly);
+        cv::Point p2(bbox.hx, bbox.hy);
+        // Draw the ROI rectangle on the image (in white)
+        cv::rectangle(frame, p1, p2, cv::Scalar(255), 2, cv::LINE_8);
+
+        // Show the image in a window
+        cv::imshow("DVS ROI", frame);
+        cv::waitKey(0); // Wait for a key press to close the window
+        cv::destroyAllWindows();
+        break;
+    }
+
     default:
+    {
         fprintf(stderr, "Error: Unknown mode \n");
         exit(EXIT_FAILURE);
+    }
     }
 }
 
@@ -69,16 +175,21 @@ Mode parseArguments(int argc, char *argv[])
 
     // Define command-line options
     struct option long_options[] = {
+        {"roi_clustering", no_argument, nullptr, 'c'},
         {"roi_avg", no_argument, nullptr, 'a'},
         {"roi_proposed", no_argument, nullptr, 'p'},
         {nullptr, 0, nullptr, 0}};
 
     // Parse command-line arguments
     int opt;
-    while ((opt = getopt_long(argc, argv, "ap", long_options, nullptr)) != -1)
+    while ((opt = getopt_long(argc, argv, "cap", long_options, nullptr)) != -1)
     {
         switch (opt)
         {
+        case 'c':
+            // clustering based DVS ROI algorithm
+            mode = DVS_ROI_CLUSTERING;
+            break;
         case 'a':
             // average based DVS ROI algorithm
             mode = DVS_ROI_AVG_BASE;
@@ -88,7 +199,7 @@ Mode parseArguments(int argc, char *argv[])
             mode = DVS_ROI_PROPOSED;
             break;
         default:
-            fprintf(stderr, "Usage: %s [--roi_avg | --roi_proposed]\n", argv[0]);
+            fprintf(stderr, "Usage: %s [--roi_clustering | --roi_avg | --roi_proposed]\n", argv[0]);
             exit(EXIT_FAILURE);
         }
     }

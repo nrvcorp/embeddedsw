@@ -26,10 +26,27 @@
 #include <chrono>
 
 #include <condition_variable>
+#include "bbox.hpp"
 
-int dvs_roi_average_based(char *img_file_pth);
+std::vector<Bbox> dvs_roi_cluster_tracker(
+    const cv::Mat &frame,
+    std::vector<std::vector<cv::Point>> &clusters,
+    int max_dist = 10,
+    int min_cluster_size = 20);
 
-void draw_square_roi(Bbox *b_box, int x_min, int y_min,
-                     int x_max, int y_max, int width, int height);
+Bbox dvs_roi_average_based(
+    const cv::Mat &frame,
+    int roi_line_min_threshold);
+
+Bbox dvs_roi_proposed(
+    const cv::Mat &frame,
+    int roi_event_score,         // Event Score for each events
+    int row_score_threshold,     // Minimum number of events for a row to be considered active
+    int roi_height_min_threshold // Minimum height of the ROI in rows
+);
+
+void draw_square_roi(
+    Bbox *b_box, int x_min, int y_min,
+    int x_max, int y_max, int width, int height);
 
 #endif

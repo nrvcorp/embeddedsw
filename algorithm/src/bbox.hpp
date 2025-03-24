@@ -1,5 +1,11 @@
 #ifndef BBOX_HPP
 #define BBOX_HPP
+
+#include <opencv2/opencv.hpp>
+#include <vector>
+#include <iostream>
+#include <cmath>
+
 /**
  * struct to hold x and y coordinates of bounding box vertices.
  * @param lx x coordinate of leftmost edge
@@ -14,4 +20,11 @@ typedef struct
     int hx;
     int hy;
 } Bbox;
+
+typedef struct
+{
+    cv::Point2f centroid;
+    Bbox bbox;
+    std::vector<cv::Point> points;
+} Cluster;
 #endif
