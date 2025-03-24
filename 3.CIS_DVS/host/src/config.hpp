@@ -36,8 +36,8 @@
 #define DISPLAY_DOWNSAMPLE_NUM 15
 #define SAVE_FPS 20
 #define ROI_EVENT_SCORE 5
-#define ROI_MIN_SCORE 25
-#define ROI_LINE_WIDTH 10
+#define ROW_SCORE_THRESHOLD 25
+#define ROI_HEIGHT_MIN_THRESHOLD 10
 #define ROI_INFLATION (float)(1)
 #define DVS_ROI_MIN_SIZE 100
 #define CIS_ROI_MIN_SIZE 224
@@ -64,6 +64,5 @@
 #define MAP_SIZE (32 * 1024UL)
 // #define MAP_MASK (MAP_SIZE - 1)
 // #define COUNT_DEFAULT (1)
-
 
 #endif

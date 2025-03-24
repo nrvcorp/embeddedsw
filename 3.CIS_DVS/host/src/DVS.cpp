@@ -805,7 +805,7 @@ void DVS::bin_to_png(char *path_to_bin, char *output_folder_name)
     bin_file.close();
 }
 
-void DVS::crop_coord(int img_show, int is_update, bool is_flip, bool print_latency)
+void DVS::dvs_roi_average_based(int img_show, int is_update, bool is_flip, bool print_latency)
 {
     float algorithm_avg = 0.0, frame_read_avg = 0.0;
     int frame_cnt = 0;
@@ -841,7 +841,7 @@ void DVS::crop_coord(int img_show, int is_update, bool is_flip, bool print_laten
             {
                 algorithm_start = std::chrono::high_resolution_clock::now();
             }
-            sum += event_accum(x_count, y_count, is_flip);
+            sum += roi_count_average(x_count, y_count, is_flip);
             if (print_latency)
             {
                 algorithm_end = std::chrono::high_resolution_clock::now();
@@ -855,7 +855,7 @@ void DVS::crop_coord(int img_show, int is_update, bool is_flip, bool print_laten
             algorithm_start = std::chrono::high_resolution_clock::now();
         }
         // calculate event ROI in the form of a bounding box
-        int is_roi = event_roi(x_count, y_count, sum, &b_box_dvs, &b_box_cis);
+        int is_roi = roi_alg_average_based(x_count, y_count, sum, &b_box_dvs, &b_box_cis);
         if (print_latency)
         {
             algorithm_end = std::chrono::high_resolution_clock::now();
@@ -963,7 +963,7 @@ void DVS::send_frame(cv::Mat *dest_frame, bool is_flip)
     thread_mutex->unlock_single_writer(1);
 }
 
-int DVS::event_accum(int *x_count, int *y_count, bool is_flip)
+int DVS::roi_count_average(int *x_count, int *y_count, bool is_flip)
 {
     int sum = 0;
     for (int h = 0; h < frame_h; h++)
@@ -999,7 +999,7 @@ int DVS::event_accum(int *x_count, int *y_count, bool is_flip)
     return sum;
 }
 
-int DVS::event_roi(int *x_count, int *y_count, int sum, Bbox *b_box_dvs, Bbox *b_box_cis)
+int DVS::roi_alg_average_based(int *x_count, int *y_count, int sum, Bbox *b_box_dvs, Bbox *b_box_cis)
 {
     // check columns with number of events above average
     int x_avg = sum / frame_w;
@@ -1013,13 +1013,13 @@ int DVS::event_roi(int *x_count, int *y_count, int sum, Bbox *b_box_dvs, Bbox *b
         if (x_count[w] > x_avg)
         {
             x_thresh_count++;
-            // check consecutive <roi_line_width> num of columns with number of events above average
-            if (x_thresh_count >= roi_line_width)
+            // check consecutive <roi_height_min_threshold> num of columns with number of events above average
+            if (x_thresh_count >= roi_height_min_threshold)
             {
                 if (x_min == 0)
                 {
                     // set as ROI left boundary
-                    x_min = w - roi_line_width + 1;
+                    x_min = w - roi_height_min_threshold + 1;
                     x_max = w;
                 }
                 else if (w > x_max)
@@ -1031,7 +1031,7 @@ int DVS::event_roi(int *x_count, int *y_count, int sum, Bbox *b_box_dvs, Bbox *b
         }
         else
         {
-            // if no consecutive <roi_line_width> columns exist, reset count
+            // if no consecutive <roi_height_min_threshold> columns exist, reset count
             x_thresh_count = 0;
         }
     }
@@ -1047,13 +1047,13 @@ int DVS::event_roi(int *x_count, int *y_count, int sum, Bbox *b_box_dvs, Bbox *b
         if (y_count[h] > y_avg)
         {
             y_thresh_count++;
-            // check consecutive <roi_line_width> num of rows with number of events above average
-            if (y_thresh_count >= roi_line_width)
+            // check consecutive <roi_height_min_threshold> num of rows with number of events above average
+            if (y_thresh_count >= roi_height_min_threshold)
             {
                 if (y_min == 0)
                 {
                     // set as ROI top boundary
-                    y_min = h - roi_line_width + 1;
+                    y_min = h - roi_height_min_threshold + 1;
                     y_max = h;
                 }
                 else if (h > y_max)
@@ -1065,7 +1065,7 @@ int DVS::event_roi(int *x_count, int *y_count, int sum, Bbox *b_box_dvs, Bbox *b
         }
         else
         {
-            // if no consecutive <roi_line_width> rows exist, reset count
+            // if no consecutive <roi_height_min_threshold> rows exist, reset count
             y_thresh_count = 0;
         }
     }
@@ -1091,7 +1091,7 @@ int DVS::event_roi(int *x_count, int *y_count, int sum, Bbox *b_box_dvs, Bbox *b
         return 0;
     }
 }
-void DVS::set_CIS(float x_scale, float y_scale, float x_offset, float y_offset, int frame_w, int frame_h, int roi_event_score_, int roi_min_score_, int roi_line_width_, int roi_min_size_,
+void DVS::set_CIS(float x_scale, float y_scale, float x_offset, float y_offset, int frame_w, int frame_h, int roi_event_score_, int row_score_threshold_, int roi_height_min_threshold_, int roi_min_size_,
                   float roi_inflation_ratio_)
 {
     // detect ROI for CIS instead of DVS
@@ -1105,17 +1105,17 @@ void DVS::set_CIS(float x_scale, float y_scale, float x_offset, float y_offset, 
     cis_frame_w = frame_w;
     cis_frame_h = frame_h;
     roi_event_score = roi_event_score_;
-    roi_min_score = roi_min_score_;
-    roi_line_width = roi_line_width_;
+    row_score_threshold = row_score_threshold_;
+    roi_height_min_threshold = roi_height_min_threshold_;
     roi_min_size = roi_min_size_;
     roi_inflation_ratio = roi_inflation_ratio_;
 }
-void DVS::set_DVS_ROI(int roi_event_score_, int roi_min_score_, int roi_line_width_, int roi_min_size_, float roi_inflation_ratio_)
+void DVS::set_DVS_ROI(int roi_event_score_, int row_score_threshold_, int roi_height_min_threshold_, int roi_min_size_, float roi_inflation_ratio_)
 {
     // detect ROI for DVS
     roi_event_score = roi_event_score_;
-    roi_min_score = roi_min_score_;
-    roi_line_width = roi_line_width_;
+    row_score_threshold = row_score_threshold_;
+    roi_height_min_threshold = roi_height_min_threshold_;
     roi_min_size = roi_min_size_;
     roi_inflation_ratio = roi_inflation_ratio_;
 }
@@ -1304,14 +1304,14 @@ void DVS::convert2BitTo8Bit_count_accum(bool is_flip)
         }
     }
 }
-int DVS::new_ROI(Bbox *dvs, Bbox *cis)
+int DVS::roi_alg_proposed(Bbox *dvs, Bbox *cis)
 {
-    int row_idx = 0;
+    int row_start_idx = 0;
     // final roi values
     int global_x_min = frame_w, global_x_max = 0;
     int global_y_min = 0, global_y_max = -1;
     // height-wise line width threshold apply
-    int height_count = 0;
+    int roi_row_streak = 0;
     // calculate x-direction min, max for a few rows
     int candidate_x_min, candidate_x_max;
     candidate_x_min = frame_w;
@@ -1320,15 +1320,15 @@ int DVS::new_ROI(Bbox *dvs, Bbox *cis)
     // where some values are -1 and others are roi_event_score(currently 5)
     for (int h = 0; h < frame_h; h++)
     {
-        int max_score = 0, cur_score = 0;
-        int local_min = frame_w, local_max = 0;
-        int cur_score_left_end = 0;
+        int local_max_score = 0, local_cur_score = 0;
+        int local_max_left = frame_w, local_max_right = 0;
+        int local_cur_score_left = 0;
         // incremental algorithm
         for (int w = 0; w < frame_w; w++)
         {
             // cur_val : current score of sequence element
             int cur_val;
-            int pix_val = frame.data[row_idx + w];
+            int pix_val = frame.data[row_start_idx + w];
             if (pix_val > 128)
             {
                 cur_val = roi_event_score; // 2+width_count;//((pix_val-128)>>2)+width_count;
@@ -1341,40 +1341,40 @@ int DVS::new_ROI(Bbox *dvs, Bbox *cis)
             {
                 cur_val = -1;
             }
-            // cur_score : max value of partial sequence whose right end is w
-            cur_score = cur_score + cur_val;
-            // if cur_score < 0, 0(no elements in partial sequence) is larger, empty sequence corresponding to cur_score
-            if (cur_score < 0)
+            // local_cur_score : max value of partial sequence whose right end is w
+            local_cur_score = local_cur_score + cur_val;
+            // if local_cur_score < 0, 0(no elements in partial sequence) is larger, empty sequence corresponding to local_cur_score
+            if (local_cur_score < 0)
             {
-                cur_score = 0;
+                local_cur_score = 0;
                 // set the left end of partial sequence to current sequence element
-                cur_score_left_end = w;
+                local_cur_score_left = w;
             }
             // record maximum partial consecutive sequence
             // and its left & right ends
-            if (cur_score > max_score)
+            if (local_cur_score > local_max_score)
             {
-                max_score = cur_score;
-                local_min = cur_score_left_end;
-                local_max = w;
+                local_max_score = local_cur_score;
+                local_max_left = local_cur_score_left;
+                local_max_right = w;
             }
         }
-        // printf("row %d min %d max %d max_score = %d\n", h,local_min, local_max, max_score );
+        // printf("row %d min %d max %d local_max_score = %d\n", h,local_max_left, local_max_right, local_max_score );
         // if max score exceeds threshold
-        if (max_score >= roi_min_score)
+        if (local_max_score >= row_score_threshold)
         {
-            height_count++;
+            roi_row_streak++;
             // union max & min with few adjacent rows
-            if (local_min < candidate_x_min)
-                candidate_x_min = local_min;
-            if (local_max > candidate_x_max)
-                candidate_x_max = local_max;
-            // if consecutive rows' max score exceed roi_min_score
+            if (local_max_left < candidate_x_min)
+                candidate_x_min = local_max_left;
+            if (local_max_right > candidate_x_max)
+                candidate_x_max = local_max_right;
+            // if consecutive rows' max score exceed row_score_threshold
             // modify final ROI
-            if (height_count >= roi_line_width)
+            if (roi_row_streak >= roi_height_min_threshold)
             {
                 if (global_y_min == 0)
-                    global_y_min = h - roi_line_width + 1;
+                    global_y_min = h - roi_height_min_threshold + 1;
                 global_y_max = h;
                 if (candidate_x_min < global_x_min)
                     global_x_min = candidate_x_min;
@@ -1388,9 +1388,9 @@ int DVS::new_ROI(Bbox *dvs, Bbox *cis)
             // initialize max, min and row count
             candidate_x_min = frame_w;
             candidate_x_max = 0;
-            height_count = 0;
+            roi_row_streak = 0;
         }
-        row_idx += frame_w;
+        row_start_idx += frame_w;
     }
     if (global_y_max != -1)
     {
@@ -1416,7 +1416,7 @@ int DVS::new_ROI(Bbox *dvs, Bbox *cis)
         return 0;
     }
 }
-void DVS::crop_new_ROI(int img_show, int is_update, bool is_flip, bool print_latency)
+void DVS::dvs_roi_proposed(int img_show, int is_update, bool is_flip, bool print_latency)
 {
     float algorithm_avg = 0.0, frame_read_avg = 0.0;
     int frame_cnt = 0;
@@ -1449,7 +1449,7 @@ void DVS::crop_new_ROI(int img_show, int is_update, bool is_flip, bool print_lat
             algorithm_start = std::chrono::high_resolution_clock::now();
         }
         // calculate event ROI in the form of a bounding box
-        int is_roi = new_ROI(&b_box_dvs, &b_box_cis);
+        int is_roi = roi_alg_proposed(&b_box_dvs, &b_box_cis);
         if (print_latency)
         {
             algorithm_end = std::chrono::high_resolution_clock::now();
