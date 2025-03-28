@@ -1,0 +1,8 @@
+*.bin
+*.avi
+
+3.CIS_DVS/host/bin_files/*.bin
+3.CIS_DVS/host/png_files/*.png
+3.CIS_DVS/host/vid_files/*
+3.CIS_DVS/host/cis_png/*.png
+3.CIS_DVS/host/dvs_png/*.png

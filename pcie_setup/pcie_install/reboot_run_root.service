@@ -1,0 +1,8 @@
+[Unit]
+Description=Reboot message systemd service.
+[Service]
+Type=simple
+ExecStart=/bin/bash /home/nrvfpga01/xsrc/embeddedsw/pcie_setup/pcie_install/run_root.sh
+
+[Install]
+WantedBy=multi-user.target
