@@ -28,7 +28,8 @@ enum Mode
 {
     DVS_ROI_CLUSTERING = 1,
     DVS_ROI_AVG_BASE = 2,
-    DVS_ROI_PROPOSED
+    DVS_ROI_PROPOSED = 3,
+    DVS_ROI_PROPOSED_MULTIOBJECT = 4
 };
 
 void handleMode(Mode mode);
@@ -45,8 +46,8 @@ int main(int argc, char *argv[])
 
 void handleMode(Mode mode)
 {
-    const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/glasses/frame_00005.png";
-    // const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/pliers/frame_00010.png";
+    const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/pliers/frame_00010.png";
+    // const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/glasses/frame_00005.png";
 
     cv::Mat frame = cv::imread(img_file_pth, cv::IMREAD_GRAYSCALE);
     if (frame.empty())
@@ -161,6 +162,43 @@ void handleMode(Mode mode)
         break;
     }
 
+    case DVS_ROI_PROPOSED_MULTIOBJECT:
+    {
+        printf("DVS ROI PROPOSED MULTI mode\n");
+        auto start = std::chrono::high_resolution_clock::now();
+
+        auto rois = dvs_roi_proposed_multiobject(
+            frame,
+            5,  // roi_event_score
+            20, // row_score_threshold
+            5,  // roi_height_min_threshold
+            10, // max_vertical_gap
+            20, // min_roi_width
+            20  // min_roi_height
+        );
+
+        auto end = std::chrono::high_resolution_clock::now();
+        double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+        std::cout << "Algorithm took " << elapsed_ms << " ms" << std::endl;
+
+        cv::Mat visual_out = cv::Mat(frame.size(), CV_8UC3);
+        cv::cvtColor(frame, visual_out, cv::COLOR_GRAY2BGR);
+
+        for (const auto &roi : rois)
+        {
+            cv::rectangle(visual_out,
+                          cv::Point(roi.lx, roi.ly),
+                          cv::Point(roi.hx, roi.hy),
+                          cv::Scalar(0, 255, 0), 2);
+        }
+
+        cv::imshow("Multi ROI Visualization", visual_out);
+        cv::waitKey(0);
+
+        cv::destroyAllWindows();
+        break;
+    }
+
     default:
     {
         fprintf(stderr, "Error: Unknown mode \n");
@@ -178,11 +216,12 @@ Mode parseArguments(int argc, char *argv[])
         {"roi_clustering", no_argument, nullptr, 'c'},
         {"roi_avg", no_argument, nullptr, 'a'},
         {"roi_proposed", no_argument, nullptr, 'p'},
+        {"roi_proposed_multi", no_argument, nullptr, 'm'},
         {nullptr, 0, nullptr, 0}};
 
     // Parse command-line arguments
     int opt;
-    while ((opt = getopt_long(argc, argv, "cap", long_options, nullptr)) != -1)
+    while ((opt = getopt_long(argc, argv, "capm", long_options, nullptr)) != -1)
     {
         switch (opt)
         {
@@ -197,6 +236,10 @@ Mode parseArguments(int argc, char *argv[])
         case 'p':
             // proposed ROI algorithm
             mode = DVS_ROI_PROPOSED;
+            break;
+        case 'm':
+            // proposed ROI multi algorithm
+            mode = DVS_ROI_PROPOSED_MULTIOBJECT;
             break;
         default:
             fprintf(stderr, "Usage: %s [--roi_clustering | --roi_avg | --roi_proposed]\n", argv[0]);
