@@ -27,4 +27,18 @@ typedef struct
     Bbox bbox;
     std::vector<cv::Point> points;
 } Cluster;
+
+typedef struct
+{
+    int row;
+    int left;
+    int right;
+} RowStreak;
+
+typedef struct
+{
+    int last_row;
+    std::vector<RowStreak> streaks;
+} StreakCluster;
+
 #endif

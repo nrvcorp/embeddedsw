@@ -81,8 +81,8 @@ private:
 
     // parameters for DVS ROI calculation
     int roi_event_score;
-    int roi_min_score;
-    int roi_line_width;
+    int row_score_threshold;
+    int roi_height_min_threshold;
     int roi_min_size;
     float roi_inflation_ratio;
 
@@ -197,12 +197,12 @@ public:
      * which detects frequent events inside the ROI
      *
      * @param roi_event_score_ score for including event pixel in row-wise sliced ROI
-     * @param roi_min_score_ min score for considering particular row as part of final ROI
-     * @param roi_line_width_ required number of consecutive rows inside DVS frame with high scores
+     * @param row_score_threshold_ min score for considering particular row as part of final ROI
+     * @param roi_height_min_threshold_ required number of consecutive rows inside DVS frame with high scores
      * @param roi_min_size_ minimum ROI bounding box size (in pixels)
      * @param roi_inflation_ratio_ enlarge bounding box size to center and zoom out ROI for NPU object detection purposes
      */
-    void set_DVS_ROI(int roi_event_score_, int roi_min_score_, int roi_line_width_, int roi_min_size_, float roi_inflation_ratio_);
+    void set_DVS_ROI(int roi_event_score_, int row_score_threshold_, int roi_height_min_threshold_, int roi_min_size_, float roi_inflation_ratio_);
 
     /**
      * set ROI parameters and DVS position relative to CIS
@@ -220,13 +220,13 @@ public:
      * @param frame_w CIS frame width in pixels
      * @param frame_h CIS frame height in pixels
      * @param roi_event_score_ score for including event pixel in row-wise sliced ROI
-     * @parvoid setThreadPriority(std::thread &t)am roi_min_score_ min score for considering particular row as part of final ROI
-     * @param roi_line_width_ required number of consecutive rows inside DVS frame with high scores
+     * @param row_score_threshold_ min score for considering particular row as part of final ROI
+     * @param roi_height_min_threshold_ required number of consecutive rows inside DVS frame with high scores
      * @param roi_min_size_ minimum ROI bounding box size (in pixels)
      * @param roi_inflation_ratio_ enlarge bounding box size to center and zoom out ROI for NPU object detection purposes
      */
-    void set_CIS(float x_scale, float y_scale, float x_offset, float y_offset, int frame_w, int frame_h, int roi_event_score_, int roi_min_score_,
-                 int roi_line_width_, int roi_min_size_, float roi_inflation_ratio_);
+    void set_CIS(float x_scale, float y_scale, float x_offset, float y_offset, int frame_w, int frame_h, int roi_event_score_, int row_score_threshold_,
+                 int roi_height_min_threshold_, int roi_min_size_, float roi_inflation_ratio_);
 
     /**
      * calculate DVS fps and display on opencv frame
@@ -322,7 +322,7 @@ public:
      * @param is_flip if the DVS image is flipped using a mirror.
      * @param print_latency prints average algorithm and per-frame latency to terminal
      */
-    void crop_coord(int img_show = 1, int is_update = 0, bool is_flip = false, bool print_latency = false);
+    void dvs_roi_average_based(int img_show = 1, int is_update = 0, bool is_flip = false, bool print_latency = false);
     /**
      *sends DVS frame data to dest_frame.
      *@param[out] dest_frame pointer to write DVS frame to
@@ -336,7 +336,7 @@ public:
      * @param[out] y_count Container for event counts per row
      * @return total number of events
      */
-    int event_accum(int *x_count, int *y_count, bool is_flip = false);
+    int roi_count_average(int *x_count, int *y_count, bool is_flip = false);
     /**
      * calculates ROI bounding box for events, given stacked DVS frames
      *
@@ -347,7 +347,7 @@ public:
      * @param[out] b_box_cis pointer to shared bounding box struct
      * @return 1 if ROI exists, 0 otherwise
      */
-    int event_roi(int *x_count, int *y_count, int sum, Bbox *b_box_dvs, Bbox *b_box_cis);
+    int roi_alg_average_based(int *x_count, int *y_count, int sum, Bbox *b_box_dvs, Bbox *b_box_cis);
     /**
      * counts number of events in 8-bit word
      * @param x input 8bit word
@@ -370,7 +370,7 @@ public:
      * @param[out] cis ROI that fits inside CIS frame
      * @return if there is detected roi, 1. else, 0.
      */
-    int new_ROI(Bbox *dvs, Bbox *cis);
+    int roi_alg_proposed(Bbox *dvs, Bbox *cis);
     /**
      * displays cropped ROI for DVS and sends bbox information through shared struct between classes
      * @param img_show whether to show DVS video.
@@ -378,7 +378,7 @@ public:
      * @param is_flip if the DVS image is flipped using a mirror.
      * @param print_latency prints average algorithm and per-frame latency to terminal
      */
-    void crop_new_ROI(int img_show = 1, int is_update = 0, bool is_flip = false, bool print_latency = false);
+    void dvs_roi_proposed(int img_show = 1, int is_update = 0, bool is_flip = false, bool print_latency = false);
     ~DVS();
 };
 
