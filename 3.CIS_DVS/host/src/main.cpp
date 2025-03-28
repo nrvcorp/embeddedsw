@@ -170,7 +170,7 @@ void handleMode(Mode mode)
     case DVS_STORE:
         printf("DVS store mode\n");
 
-        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, 1, DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, true);
+        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, (2000 / 60), DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, true);
         // Start threads for CIS and DVS
         if (dvs)
         {
@@ -341,7 +341,7 @@ void handleMode(Mode mode)
         break;
     case DVS_BIN_TO_PNG:
         printf("convert the bin file from DVS_STORE mode to a collection of PNGs\n");
-        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, 1, DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, true);
+        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, (2000 / 60), DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, true);
         cout << "Path to bin file:\n";
         cin.getline(bin_file_name, 100);
         cout << "Path to folder that will contain PNG images:\n";

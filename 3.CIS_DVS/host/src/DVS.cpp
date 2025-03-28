@@ -770,39 +770,83 @@ void DVS::bin_to_png(char *path_to_bin, char *output_folder_name)
         return;
     }
 
+    // int frame_count = 0; // Counter for frame naming
+
+    // while (bin_file.read(buffer, frame_bytes))
+    // {
+    //     std::streamsize bytesRead = bin_file.gcount(); // Get actual bytes read
+    //     if (bytesRead < frame_bytes)
+    //     {
+    //         if (bin_file.eof())
+    //         {
+    //             std::cout << "Reached end of file. Read only " << bytesRead << " bytes.\n";
+    //         }
+    //         else if (bin_file.fail() || bin_file.bad())
+    //         {
+    //             std::cerr << "File read error occurred!\n";
+    //         }
+    //     }
+    //     else
+    //     {
+    //         // Initialize frame and convert data
+    //         frame = cv::Mat::zeros(frame_h, frame_w, CV_8UC1);
+    //         convert2BitTo8Bit();
+
+    //         // Generate filename for the PNG image
+    //         std::ostringstream filename;
+    //         filename << output_folder_name << "/frame_" << std::setw(5) << std::setfill('0') << frame_count << ".png";
+
+    //         // Save the frame as a PNG image
+    //         cv::imwrite(filename.str(), frame);
+
+    //         frame_count++; // Increment frame count
+    //     }
+    // }
+    // bin_file.close();
+
     int frame_count = 0; // Counter for frame naming
-
-    while (bin_file.read(buffer, frame_bytes))
+    while (!bin_file.eof())
     {
-        std::streamsize bytesRead = bin_file.gcount(); // Get actual bytes read
-        if (bytesRead < frame_bytes)
+        frame = cv::Mat::zeros(frame_h, frame_w, CV_8UC1);
+        for (int frame_grp_num = 0; frame_grp_num < accum_num; frame_grp_num++)
         {
-            if (bin_file.eof())
+            bin_file.read(buffer, frame_bytes);
+            std::streamsize bytesRead = bin_file.gcount(); // get actual bytes read
+
+            // frame read error
+            if (bytesRead < frame_bytes)
             {
-                std::cout << "Reached end of file. Read only " << bytesRead << " bytes.\n";
+                if (bin_file.eof())
+                {
+                    std::cout << "Reached end of file. Read only " << bytesRead << " bytes.\n";
+                }
+                else if (bin_file.fail() || bin_file.bad())
+                {
+                    std::cerr << "File read error occurred!\n";
+                }
             }
-            else if (bin_file.fail() || bin_file.bad())
+
+            // accumulate
+            if (frame_grp_num == 0)
             {
-                std::cerr << "File read error occurred!\n";
+                convert2BitTo8Bit();
+            }
+            else
+            {
+                convert2BitTo8Bit_accum();
             }
         }
-        else
-        {
-            // Initialize frame and convert data
-            frame = cv::Mat::zeros(frame_h, frame_w, CV_8UC1);
-            convert2BitTo8Bit();
 
-            // Generate filename for the PNG image
-            std::ostringstream filename;
-            filename << output_folder_name << "/frame_" << std::setw(5) << std::setfill('0') << frame_count << ".png";
+        cv::flip(frame, frame, 0);
 
-            // Save the frame as a PNG image
-            cv::imwrite(filename.str(), frame);
+        // Generate filename for the PNG image
+        std::ostringstream filename;
+        filename << output_folder_name << "/frame_" << std::setw(5) << std::setfill('0') << frame_count << ".png";
 
-            frame_count++; // Increment frame count
-        }
+        // Save the frame as a PNG image
+        cv::imwrite(filename.str(), frame);
+        frame_count++; // Increment frame count
     }
-    bin_file.close();
 }
 
 void DVS::dvs_roi_average_based(int img_show, int is_update, bool is_flip, bool print_latency)
