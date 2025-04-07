@@ -201,7 +201,7 @@ Bbox dvs_roi_average_based(
     int img_height = 100;
     int img_width = frame_w;
     int check_w = 512;
-    int check_h = 120;
+    int check_h = 600;
     cv::Mat check_w_plot(frame_h, 100, CV_8UC1, cv::Scalar(255));
     for (int h = 0; h < frame_h; h++)
     {
@@ -251,6 +251,283 @@ Bbox dvs_roi_average_based(
     return b_box_dvs;
 }
 
+void detect_streaks(
+    const cv::Mat &frame,
+    ScanDirection direction,
+    int roi_event_score,
+    int row_score_threshold,
+    std::vector<Streak> &out_streaks)
+{
+    const int frame_w = frame.cols;
+    const int frame_h = frame.rows;
+
+    if (direction == ScanDirection::Horizontal)
+    {
+        int max_merge_gap = 3;
+
+        for (int h = 0; h < frame_h; ++h)
+        {
+            const uchar *row_ptr = frame.ptr<uchar>(h);
+
+            int score = 0;
+            int streak_start = 0;
+
+            bool has_pending_streak = false;
+            int streak_start_prev = 0;
+            int last_streak_end = -10;
+
+            for (int w = 0; w < frame_w; ++w)
+            {
+                score += (row_ptr[w] != 128) ? roi_event_score : -1;
+
+                if (score < 0)
+                {
+                    score = 0;
+                    streak_start = w + 1;
+                }
+                else if (score >= row_score_threshold && w - streak_start > 5)
+                {
+                    // Merge if close enough to previous
+                    if (has_pending_streak && (streak_start - last_streak_end) <= max_merge_gap)
+                    {
+                        last_streak_end = w; // Extend previous streak
+                    }
+                    else
+                    {
+                        if (has_pending_streak)
+                            out_streaks.push_back({{streak_start_prev, h}, {last_streak_end, h}});
+
+                        streak_start_prev = streak_start;
+                        last_streak_end = w;
+                        has_pending_streak = true;
+                    }
+
+                    score = 0;
+                    streak_start = w + 1;
+                }
+            }
+
+            // Flush final streak
+            if (has_pending_streak)
+            {
+                out_streaks.push_back({{streak_start_prev, h}, {last_streak_end, h}});
+            }
+        }
+    }
+    else if (direction == ScanDirection::Vertical)
+    {
+        // 1. Rotate input 90° CCW → vertical streaks become horizontal
+        cv::Mat rotated;
+        cv::rotate(frame, rotated, cv::ROTATE_90_COUNTERCLOCKWISE);
+        int rotated_h = rotated.rows; // same as original width
+        int rotated_w = rotated.cols; // same as original height
+
+        // 2. Apply horizontal scan to rotated image
+        for (int h = 0; h < rotated_h; ++h)
+        {
+            const uchar *row_ptr = rotated.ptr<uchar>(h);
+
+            int score = 0;
+            int streak_start = 0;
+
+            for (int w = 0; w < rotated_w; ++w)
+            {
+                score += (row_ptr[w] != 128) ? roi_event_score : -1;
+
+                if (score < 0)
+                {
+                    score = 0;
+                    streak_start = w + 1;
+                }
+                else if (score >= row_score_threshold && w - streak_start > 5)
+                {
+                    // 3. Convert (rotated_w = H) and (rotated_h = W) back to original coordinates
+                    int x1 = rotated_h - 1 - h;
+                    int y1 = streak_start;
+                    int x2 = rotated_h - 1 - h;
+                    int y2 = w;
+
+                    out_streaks.push_back({{x1, y1}, {x2, y2}});
+
+                    score = 0;
+                    streak_start = w + 1;
+                }
+            }
+        }
+    }
+    else if (direction == ScanDirection::Diagonal45) // ↘
+    {
+        // Start from top row
+        for (int x0 = 0; x0 < frame_w; ++x0)
+        {
+            int x = x0, y = 0;
+            int score = 0, streak_start = -1;
+
+            while (x < frame_w && y < frame_h)
+            {
+                uchar pixel = frame.at<uchar>(y, x);
+                score += (pixel != 128) ? roi_event_score : -1;
+
+                if (score < 0)
+                {
+                    score = 0;
+                    streak_start = -1;
+                }
+                else
+                {
+                    if (streak_start < 0)
+                        streak_start = 0;
+
+                    if (score >= row_score_threshold && (score > 5))
+                    {
+                        int dx = score; // or use a safe segment length
+                        out_streaks.push_back({{x - dx + 1, y - dx + 1},
+                                               {x, y}});
+                        score = 0;
+                        streak_start = -1;
+                    }
+                }
+
+                ++x;
+                ++y;
+            }
+        }
+
+        // Start from left column (excluding [0][0] which is already handled)
+        for (int y0 = 1; y0 < frame_h; ++y0)
+        {
+            int x = 0, y = y0;
+            int score = 0, streak_start = -1;
+
+            while (x < frame_w && y < frame_h)
+            {
+                uchar pixel = frame.at<uchar>(y, x);
+                score += (pixel != 128) ? roi_event_score : -1;
+
+                if (score < 0)
+                {
+                    score = 0;
+                    streak_start = -1;
+                }
+                else
+                {
+                    if (streak_start < 0)
+                        streak_start = 0;
+
+                    if (score >= row_score_threshold && (score > 5))
+                    {
+                        int dx = score;
+                        out_streaks.push_back({{x - dx + 1, y - dx + 1},
+                                               {x, y}});
+                        score = 0;
+                        streak_start = -1;
+                    }
+                }
+
+                ++x;
+                ++y;
+            }
+        }
+    }
+    else if (direction == ScanDirection::Diagonal135) // ↙
+    {
+        // Start from top row (top-right to top-left)
+        for (int x0 = frame_w - 1; x0 >= 0; --x0)
+        {
+            int x = x0, y = 0;
+            int score = 0;
+            int streak_len = 0;
+            int streak_start_x = -1, streak_start_y = -1;
+
+            while (x < frame_w && y < frame_h && x >= 0)
+            {
+                uchar pixel = frame.ptr<uchar>(y)[x];
+                score += (pixel != 128) ? roi_event_score : -1;
+
+                if (score < 0)
+                {
+                    score = 0;
+                    streak_len = 0;
+                    streak_start_x = -1;
+                    streak_start_y = -1;
+                }
+                else
+                {
+                    if (streak_start_x < 0)
+                    {
+                        streak_start_x = x;
+                        streak_start_y = y;
+                        streak_len = 0;
+                    }
+
+                    streak_len++;
+
+                    if (score >= row_score_threshold && streak_len > 5)
+                    {
+                        out_streaks.push_back({{streak_start_x, streak_start_y},
+                                               {x, y}});
+                        score = 0;
+                        streak_len = 0;
+                        streak_start_x = -1;
+                        streak_start_y = -1;
+                    }
+                }
+
+                --x;
+                ++y;
+            }
+        }
+
+        // Start from right column (excluding top-right corner)
+        for (int y0 = 1; y0 < frame_h; ++y0)
+        {
+            int x = frame_w - 1;
+            int y = y0;
+            int score = 0;
+            int streak_len = 0;
+            int streak_start_x = -1, streak_start_y = -1;
+
+            while (x < frame_w && y < frame_h && x >= 0)
+            {
+                uchar pixel = frame.ptr<uchar>(y)[x];
+                score += (pixel != 128) ? roi_event_score : -1;
+
+                if (score < 0)
+                {
+                    score = 0;
+                    streak_len = 0;
+                    streak_start_x = -1;
+                    streak_start_y = -1;
+                }
+                else
+                {
+                    if (streak_start_x < 0)
+                    {
+                        streak_start_x = x;
+                        streak_start_y = y;
+                        streak_len = 0;
+                    }
+
+                    streak_len++;
+
+                    if (score >= row_score_threshold && streak_len > 5)
+                    {
+                        out_streaks.push_back({{streak_start_x, streak_start_y},
+                                               {x, y}});
+                        score = 0;
+                        streak_len = 0;
+                        streak_start_x = -1;
+                        streak_start_y = -1;
+                    }
+                }
+
+                --x;
+                ++y;
+            }
+        }
+    }
+}
+
 Bbox dvs_roi_proposed(
     const cv::Mat &frame,
     const int roi_event_score,         // Event Score for each events
@@ -261,14 +538,14 @@ Bbox dvs_roi_proposed(
     const int frame_h = 720, frame_w = 960;
     Bbox b_box_dvs = {0, 0, 0, 0};
 
-    // //---------------------------------------------------
-    // cv::Mat overlay;
-    // cv::cvtColor(frame, overlay, cv::COLOR_GRAY2BGR); // Convert to BGR for colored drawing
-    // int *y_score = (int *)calloc(frame_h, sizeof(int));
-    // int plot_width = 200;
-    // int axis_width = 60;                                                                  // extra margin for y-axis labels
-    // cv::Mat y_plot(frame_h, plot_width + axis_width, CV_8UC3, cv::Scalar(255, 255, 255)); // color plot
-    // //---------------------------------------------------
+    //---------------------------------------------------
+    cv::Mat overlay;
+    cv::cvtColor(frame, overlay, cv::COLOR_GRAY2BGR); // Convert to BGR for colored drawing
+    int *y_score = (int *)calloc(frame_h, sizeof(int));
+    int plot_width = 200;
+    int axis_width = 60;                                                                  // extra margin for y-axis labels
+    cv::Mat y_plot(frame_h, plot_width + axis_width, CV_8UC3, cv::Scalar(255, 255, 255)); // color plot
+    //---------------------------------------------------
     // global (x_min, x_max, y_min, y_max)
     int global_x_min = frame_w, global_x_max = 0;
     int global_y_min = 0, global_y_max = -1;
@@ -312,12 +589,12 @@ Bbox dvs_roi_proposed(
 
         if (local_max_score >= row_score_threshold)
         {
-            // //---------------------------------------------------
-            // cv::Point start(local_max_left, h);
-            // cv::Point end(local_max_right, h);
-            // cv::arrowedLine(overlay, start, end, cv::Scalar(0, 0, 255), 1, cv::LINE_AA, 0, 0.2);
-            // y_score[h] = local_max_score;
-            // //---------------------------------------------------
+            //---------------------------------------------------
+            cv::Point start(local_max_left, h);
+            cv::Point end(local_max_right, h);
+            cv::arrowedLine(overlay, start, end, cv::Scalar(0, 0, 255), 1, cv::LINE_AA, 0, 0.2);
+            y_score[h] = local_max_score;
+            //---------------------------------------------------
             roi_row_streak++;
             if (local_max_left < candidate_x_min)
                 candidate_x_min = local_max_left;
@@ -353,34 +630,145 @@ Bbox dvs_roi_proposed(
     }
 
     //---------------------------------------------------
-    // cv::imshow("Proposed ROI Arrow Visualization", overlay);
+    cv::imshow("Proposed ROI Arrow Visualization", overlay);
 
-    // int y_score_max = *std::max_element(y_score, y_score + frame_h);
-    // for (int h = 1; h < frame_h; h++)
-    // {
-    //     int x1 = static_cast<int>(plot_width * y_score[h - 1] / (float)y_score_max);
-    //     int x2 = static_cast<int>(plot_width * y_score[h] / (float)y_score_max);
-    //     cv::line(y_plot,
-    //              cv::Point(axis_width + x1, h - 1),
-    //              cv::Point(axis_width + x2, h),
-    //              cv::Scalar(0, 0, 0), 1);
-    // }
-    // for (int x = 0; x <= plot_width; x += 30)
-    // {
-    //     int score_val = static_cast<int>(y_score_max * (x / (float)plot_width));
-    //     cv::line(y_plot,
-    //              cv::Point(axis_width + x, 0),
-    //              cv::Point(axis_width + x, frame_h),
-    //              cv::Scalar(0, 0, 0), 1);
-    //     cv::putText(y_plot, std::to_string(score_val),
-    //                 cv::Point(axis_width + x - 10, frame_h - 10),
-    //                 cv::FONT_HERSHEY_SIMPLEX, 0.35, cv::Scalar(0, 0, 0), 1);
-    // }
-    // cv::imshow("Max Score", y_plot);
-    // cv::waitKey(0);
+    int y_score_max = *std::max_element(y_score, y_score + frame_h);
+    for (int h = 1; h < frame_h; h++)
+    {
+        int x1 = static_cast<int>(plot_width * y_score[h - 1] / (float)y_score_max);
+        int x2 = static_cast<int>(plot_width * y_score[h] / (float)y_score_max);
+        cv::line(y_plot,
+                 cv::Point(axis_width + x1, h - 1),
+                 cv::Point(axis_width + x2, h),
+                 cv::Scalar(0, 0, 0), 1);
+    }
+    for (int x = 0; x <= plot_width; x += 30)
+    {
+        int score_val = static_cast<int>(y_score_max * (x / (float)plot_width));
+        cv::line(y_plot,
+                 cv::Point(axis_width + x, 0),
+                 cv::Point(axis_width + x, frame_h),
+                 cv::Scalar(0, 0, 0), 1);
+        cv::putText(y_plot, std::to_string(score_val),
+                    cv::Point(axis_width + x - 10, frame_h - 10),
+                    cv::FONT_HERSHEY_SIMPLEX, 0.35, cv::Scalar(0, 0, 0), 1);
+    }
+    cv::imshow("Max Score", y_plot);
+    cv::waitKey(0);
     //---------------------------------------------------
 
     return b_box_dvs;
+}
+
+std::vector<Bbox> dvs_roi_proposed_angled(
+    const cv::Mat &frame,
+    const int roi_event_score,
+    const int row_score_threshold,
+    const int roi_height_min_threshold,
+    const int max_vertical_gap,
+    const int min_roi_width,
+    const int min_roi_height)
+{
+    auto start = std::chrono::high_resolution_clock::now();
+    const int frame_h = frame.rows;
+    const int frame_w = frame.cols;
+
+    std::vector<Bbox> rois;
+
+    std::vector<Streak> all_streaks;
+    std::vector<ScanDirection> directions = {
+        // ScanDirection::Horizontal,
+        // ScanDirection::Vertical,
+        ScanDirection::Diagonal45,
+        // ScanDirection::Diagonal135
+    };
+
+    for (auto dir : directions)
+    {
+        std::vector<Streak> streaks;
+        detect_streaks(frame, dir, roi_event_score, row_score_threshold, streaks);
+        all_streaks.insert(all_streaks.end(), streaks.begin(), streaks.end());
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+    std::cout << "Algorithm took " << elapsed_ms << " ms" << std::endl;
+    //--------------------------------------------------------
+    // 2. Visualize all streaks
+    cv::Mat vis;
+    cv::cvtColor(frame, vis, cv::COLOR_GRAY2BGR); // Convert to BGR for colored drawing
+
+    for (const auto &streak : all_streaks)
+    {
+        cv::line(vis,
+                 streak.start,
+                 streak.end,
+                 cv::Scalar(0, 0, 255), // red
+                 1,                     // thickness
+                 cv::LINE_AA);          // anti-aliasing
+    }
+    cv::imshow("Detected Streaks", vis);
+    cv::waitKey(0);
+    //--------------------------------------------------------
+
+    // double max_point_dist = 15.0; // tune for object size
+
+    // std::vector<std::vector<Streak>> clusters;
+
+    // for (const auto &streak : all_streaks)
+    // {
+    //     bool added = false;
+
+    //     for (auto &cluster : clusters)
+    //     {
+    //         for (const auto &s : cluster)
+    //         {
+    //             double dist_start = cv::norm(streak.start - s.start);
+    //             double dist_end = cv::norm(streak.end - s.end);
+    //             double dist_cross = cv::norm(streak.start - s.end);
+    //             double dist_cross2 = cv::norm(streak.end - s.start);
+
+    //             if (std::min({dist_start, dist_end, dist_cross, dist_cross2}) < max_point_dist)
+    //             {
+    //                 cluster.push_back(streak);
+    //                 added = true;
+    //                 break;
+    //             }
+    //         }
+    //         if (added)
+    //             break;
+    //     }
+
+    //     if (!added)
+    //         clusters.push_back({streak});
+    // }
+
+    // // 3. Build bounding boxes from clusters
+    // for (const auto &cluster : clusters)
+    // {
+    //     if (cluster.size() >= roi_height_min_threshold)
+    //     {
+    //         int x_min = frame_w, x_max = 0;
+    //         int y_min = frame_h, y_max = 0;
+
+    //         for (const auto &s : cluster)
+    //         {
+    //             x_min = std::min({x_min, s.start.x, s.end.x});
+    //             x_max = std::max({x_max, s.start.x, s.end.x});
+    //             y_min = std::min({y_min, s.start.y, s.end.y});
+    //             y_max = std::max({y_max, s.start.y, s.end.y});
+    //         }
+
+    //         int box_width = x_max - x_min + 1;
+    //         int box_height = y_max - y_min + 1;
+
+    //         if (box_width >= min_roi_width && box_height >= min_roi_height)
+    //         {
+    //             rois.push_back({x_min, y_min, x_max, y_max});
+    //         }
+    //     }
+    // }
+
+    return rois;
 }
 
 std::vector<Bbox> dvs_roi_proposed_multiobject(
@@ -392,6 +780,134 @@ std::vector<Bbox> dvs_roi_proposed_multiobject(
     const int min_roi_width,
     const int min_roi_height)
 {
+    const int frame_h = frame.rows;
+    const int frame_w = frame.cols;
+
+    std::vector<Bbox> rois;
+
+    // 1. Detect horizontal streaks
+    std::vector<Streak> all_streaks;
+    detect_streaks(frame, ScanDirection::Horizontal, roi_event_score, row_score_threshold, all_streaks);
+
+    //----------------------------------------------------
+    cv::Mat colorFrame;
+    cv::cvtColor(frame, colorFrame, cv::COLOR_GRAY2BGR);
+
+    // Visualize each detected streak in red on the color frame.
+    for (const auto &streak : all_streaks)
+    {
+        // Draw the streak as a red line (BGR: 0, 0, 255) with thickness 2.
+        cv::line(colorFrame, streak.start, streak.end, cv::Scalar(0, 0, 255), 2);
+
+        // Optionally, mark the start point with a red circle.
+        cv::circle(colorFrame, streak.start, 3, cv::Scalar(0, 0, 255), -1);
+    }
+
+    // Display the color visualization.
+    cv::imshow("Streak Visualization", colorFrame);
+    cv::waitKey(0);
+    //----------------------------------------------------
+
+    // 2. Group streaks by vertical proximity and horizontal overlap
+    std::vector<std::vector<Streak>> clusters;
+    for (const auto &streak : all_streaks)
+    {
+        std::vector<int> overlapping_clusters;
+
+        for (int i = 0; i < static_cast<int>(clusters.size()); ++i)
+        {
+            const auto &cluster = clusters[i];
+            if (cluster.empty())
+                continue;
+
+            int last_row = cluster.back().end.y;
+
+            if (std::abs(streak.start.y - last_row) > max_vertical_gap)
+                continue;
+
+            for (const auto &s : cluster)
+            {
+                int s_left = std::min(s.start.x, s.end.x);
+                int s_right = std::max(s.start.x, s.end.x);
+                int c_left = std::min(streak.start.x, streak.end.x);
+                int c_right = std::max(streak.start.x, streak.end.x);
+
+                if (s_right >= c_left && s_left <= c_right)
+                {
+                    overlapping_clusters.push_back(i);
+                    break;
+                }
+            }
+        }
+
+        if (overlapping_clusters.empty())
+        {
+            clusters.push_back({streak});
+        }
+        else
+        {
+            int target_idx = overlapping_clusters[0];
+            auto &target_cluster = clusters[target_idx];
+
+            // Merge all overlapping clusters into target
+            for (int j = 1; j < static_cast<int>(overlapping_clusters.size()); ++j)
+            {
+                int idx = overlapping_clusters[j];
+                auto &src_cluster = clusters[idx];
+                target_cluster.insert(target_cluster.end(), src_cluster.begin(), src_cluster.end());
+                src_cluster.clear();
+            }
+
+            target_cluster.push_back(streak);
+
+            // Remove empty clusters
+            clusters.erase(
+                std::remove_if(clusters.begin(), clusters.end(),
+                               [](const std::vector<Streak> &c)
+                               { return c.empty(); }),
+                clusters.end());
+        }
+    }
+
+    // 3. Generate bounding boxes from valid clusters
+    for (const auto &cluster : clusters)
+    {
+        if (cluster.size() < roi_height_min_threshold)
+            continue;
+
+        int x_min = frame_w, x_max = 0;
+        int y_min = frame_h, y_max = 0;
+
+        for (const auto &s : cluster)
+        {
+            x_min = std::min({x_min, s.start.x, s.end.x});
+            x_max = std::max({x_max, s.start.x, s.end.x});
+            y_min = std::min({y_min, s.start.y, s.end.y});
+            y_max = std::max({y_max, s.start.y, s.end.y});
+        }
+
+        int box_width = x_max - x_min + 1;
+        int box_height = y_max - y_min + 1;
+
+        if (box_width >= min_roi_width && box_height >= min_roi_height)
+        {
+            rois.push_back({x_min, y_min, x_max, y_max});
+        }
+    }
+
+    return rois;
+}
+
+std::vector<Bbox> dvs_roi_proposed_multi_contour(
+    const cv::Mat &frame,
+    const int roi_event_score,
+    const int row_score_threshold,
+    const int roi_height_min_threshold,
+    const int max_vertical_gap,
+    const int min_roi_width,
+    const int min_roi_height)
+{
+    auto start = std::chrono::high_resolution_clock::now();
     const int frame_h = frame.rows;
     const int frame_w = frame.cols;
 
@@ -425,22 +941,22 @@ std::vector<Bbox> dvs_roi_proposed_multiobject(
         }
     }
 
-    //-------------------------------------------------------
-    // Optional: visualize all streaks
-    cv::Mat streak_vis;
-    cv::cvtColor(frame, streak_vis, cv::COLOR_GRAY2BGR);
-    for (const auto &streak : all_streaks)
-    {
-        cv::line(
-            streak_vis,
-            cv::Point(streak.left, streak.row),
-            cv::Point(streak.right, streak.row),
-            cv::Scalar(0, 0, 255),
-            1);
-    }
-    cv::imshow("Streak Visualization", streak_vis);
-    cv::waitKey(0);
-    //-------------------------------------------------------
+    // //-------------------------------------------------------
+    // // Optional: visualize all streaks
+    // cv::Mat streak_vis;
+    // cv::cvtColor(frame, streak_vis, cv::COLOR_GRAY2BGR);
+    // for (const auto &streak : all_streaks)
+    // {
+    //     cv::line(
+    //         streak_vis,
+    //         cv::Point(streak.left, streak.row),
+    //         cv::Point(streak.right, streak.row),
+    //         cv::Scalar(0, 0, 255),
+    //         1);
+    // }
+    // cv::imshow("Streak Visualization", streak_vis);
+    // cv::waitKey(0);
+    // //-------------------------------------------------------
 
     // 2. Group streaks by horizontal overlap
     std::vector<std::vector<RowStreak>> clusters;
@@ -502,6 +1018,55 @@ std::vector<Bbox> dvs_roi_proposed_multiobject(
                 clusters.end());
         }
     }
+
+    // 3. Build contours from clusters
+    std::vector<std::vector<cv::Point>> contours;
+    cv::Mat roi_mask = cv::Mat::zeros(frame_h, frame_w, CV_8UC1);
+
+    for (const auto &cluster : clusters)
+    {
+        if (cluster.size() >= roi_height_min_threshold)
+        {
+            // Draw streaks into binary mask
+            for (const auto &streak : cluster)
+            {
+                cv::line(roi_mask,
+                         cv::Point(streak.left, streak.row),
+                         cv::Point(streak.right, streak.row),
+                         cv::Scalar(255), 1);
+            }
+        }
+    }
+
+    // Smooth the mask a little if needed
+    cv::morphologyEx(roi_mask, roi_mask, cv::MORPH_CLOSE, cv::Mat(), cv::Point(-1, -1), 1);
+
+    // Extract contours
+    std::vector<std::vector<cv::Point>> raw_contours;
+    cv::findContours(roi_mask, raw_contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+    // Optional: smooth using approxPolyDP
+    for (const auto &c : raw_contours)
+    {
+        if (cv::contourArea(c) >= min_roi_width * min_roi_height)
+        {
+            std::vector<cv::Point> smoothed;
+            double epsilon = 3.0; // adjust for smoothness
+            cv::approxPolyDP(c, smoothed, epsilon, true);
+            contours.push_back(smoothed);
+        }
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+    std::cout << "Algorithm took " << elapsed_ms << " ms" << std::endl;
+    //---------------------------------------------------------
+    cv::Mat vis;
+    cv::cvtColor(frame, vis, cv::COLOR_GRAY2BGR);
+    cv::drawContours(vis, contours, -1, cv::Scalar(0, 255, 0), 1);
+    cv::imshow("Smooth Contour from Streak-Based Mask", vis);
+    cv::waitKey(0);
+    //---------------------------------------------------------
 
     // 3. Build bounding boxes from clusters
     std::vector<Bbox> rois;

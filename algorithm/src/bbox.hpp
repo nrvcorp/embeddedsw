@@ -41,4 +41,17 @@ typedef struct
     std::vector<RowStreak> streaks;
 } StreakCluster;
 
+enum class ScanDirection
+{
+    Horizontal,
+    Vertical,
+    Diagonal45, // ↘
+    Diagonal135 // ↙
+};
+typedef struct
+{
+    cv::Point start;
+    cv::Point end;
+} Streak;
+
 #endif
