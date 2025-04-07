@@ -48,7 +48,32 @@ Bbox dvs_roi_proposed(
     const int roi_height_min_threshold // Minimum height of the ROI in rows
 );
 
+void detect_streaks(
+    const cv::Mat &frame,
+    ScanDirection direction,
+    int roi_event_score,
+    int row_score_threshold,
+    std::vector<Streak> &out_streaks);
+
+std::vector<Bbox> dvs_roi_proposed_angled(
+    const cv::Mat &frame,
+    const int roi_event_score,
+    const int row_score_threshold,
+    const int roi_height_min_threshold,
+    const int max_vertical_gap,
+    const int min_roi_width,
+    const int min_roi_height);
+
 std::vector<Bbox> dvs_roi_proposed_multiobject(
+    const cv::Mat &frame,
+    const int roi_event_score,
+    const int row_score_threshold,
+    const int roi_height_min_threshold,
+    const int max_vertical_gap,
+    const int min_roi_width,
+    const int min_roi_height);
+
+std::vector<Bbox> dvs_roi_proposed_multi_contour(
     const cv::Mat &frame,
     const int roi_event_score,
     const int row_score_threshold,
