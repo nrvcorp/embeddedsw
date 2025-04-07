@@ -289,6 +289,11 @@ public:
      * inside directory ./bin_files
      */
     void *double_buf_bin_writer();
+    /*
+     * Save total_read_frame_num to DRAM and save it after.
+     * inside directory ./bin_files
+     */
+    void *double_buf_bin_writer_no_drop(int total_read_frame_num);
     /**
      * Reconstructs a video file from the bin file stored by DVS_STORE mode (double_buf_reader and double_buf_bin_writer)
      * @param path_to_bin path to input bin file
