@@ -171,27 +171,28 @@ void handleMode(Mode mode)
         printf("DVS store mode\n");
 
         dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, (2000 / 60), DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, true);
-        // Start threads for CIS and DVS
-        if (dvs)
-        {
-            threads.emplace_back([dvs]()
-                                 { dvs->double_buf_bin_writer(); });
-        }
-        setThreadPriority(threads.back()); // Set priority after thread creation
-        if (dvs)
-        {
-            threads.emplace_back([dvs]()
-                                 { dvs->double_buf_reader(); });
-        }
-        setThreadPriority(threads.back()); // Set priority after thread creation
-        // Wait for all threads to complete
-        for (auto &t : threads)
-        {
-            if (t.joinable())
-            {
-                t.join();
-            }
-        }
+        // // Start threads for CIS and DVS
+        // if (dvs)
+        // {
+        //     threads.emplace_back([dvs]()
+        //                          { dvs->double_buf_bin_writer(); });
+        // }
+        // setThreadPriority(threads.back()); // Set priority after thread creation
+        // if (dvs)
+        // {
+        //     threads.emplace_back([dvs]()
+        //                          { dvs->double_buf_reader(); });
+        // }
+        // setThreadPriority(threads.back()); // Set priority after thread creation
+        // // Wait for all threads to complete
+        // for (auto &t : threads)
+        // {
+        //     if (t.joinable())
+        //     {
+        //         t.join();
+        //     }
+        // }
+        dvs->double_buf_bin_writer_no_drop(10000);
 
         delete dvs;
         dvs = NULL;
@@ -341,7 +342,7 @@ void handleMode(Mode mode)
         break;
     case DVS_BIN_TO_PNG:
         printf("convert the bin file from DVS_STORE mode to a collection of PNGs\n");
-        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, (2000 / 60), DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, true);
+        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, 2000 / 60 /*(2000 / 60)*/, DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager, true);
         cout << "Path to bin file:\n";
         cin.getline(bin_file_name, 100);
         cout << "Path to folder that will contain PNG images:\n";
