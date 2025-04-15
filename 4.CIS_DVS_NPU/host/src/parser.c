@@ -44,8 +44,12 @@
 // #include "network.h"
 
 #define ARRAY_SIZE(x) sizeof((x)) / sizeof((x)[0])
+bool store_flag = false;
 
 NPU_LayerConfig NPU_TINY_YOLOV3_Config[] = {
+    //---------------------------------------------------
+    // VOC dataset
+    //---------------------------------------------------
     //--------------------------
     // LAYER 0
     //--------------------------
@@ -423,346 +427,338 @@ NPU_LayerConfig NPU_TINY_YOLOV3_Config[] = {
         .single_scale = 1024,
         .single_bias = 2048,
         .concat_baseaddr = 0,
-        .concat_ch = 0}
-    // 	//--------------------------
-    // //LAYER 0
-    // //--------------------------
-    // {
-    // 	.conv_mode              =CONV3x3,
-    // 	.ifm_case               =CASE_1x4,
-    // 	.ifm_dtype              =UINT8,
-    // 	.ifm_is_padding         =1,
-    // 	.ifm_is_maxpool         =1,
-    // 	.ifm_is_leaky_relu      =1,
-    // 	.is_concat              =0,
-    // 	.is_upsample            =0,
-    // 	.ifm_baseaddr           =YOLOv3_IFM_BUFFER_1,
-    // 	.ofm_baseaddr           =YOLOv3_IFM_BUFFER_2,
-    // 	.in_width               =320,
-    // 	.in_height              =320,
-    // 	.in_ch                  =3,
-    // 	.out_ch                 =16,
-    // 	.pool_stride            =2,
-    // 	.conv_stride            =1,
-    // 	.scale_shift            =16,
-    // 	.bias_shift             =9,
-    // 	.is_single_scale_bias   =BIAS_PER_CH,
-    // 	.single_scale           =1024,
-    // 	.single_bias            =2048,
-    // 	.concat_baseaddr        =0,
-    // 	.concat_ch              =0
-    // },
-    // //--------------------------
-    // //LAYER 2
-    // //--------------------------
-    // {
-    // 	.conv_mode              = CONV3x3,
-    // 	.ifm_case               = CASE_1x4,
-    // 	.ifm_dtype              = INT8,
-    // 	.ifm_is_padding         = 1,
-    // 	.ifm_is_maxpool         = 1,
-    // 	.ifm_is_leaky_relu      = 1,
-    // 	.is_concat              = 0,
-    // 	.is_upsample            = 0,
-    // 	.ifm_baseaddr           = YOLOv3_IFM_BUFFER_2,
-    // 	.ofm_baseaddr           = YOLOv3_IFM_BUFFER_1,
-    // 	.in_width               = 160,
-    // 	.in_height              = 160,
-    // 	.in_ch                  = 16,
-    // 	.out_ch                 = 32,
-    // 	.pool_stride            = 2,
-    // 	.conv_stride            = 1,
-    // 	.scale_shift            = 16,
-    // 	.bias_shift             = 6,
-    // 	.is_single_scale_bias   = BIAS_PER_CH,
-    // 	.single_scale           = 1024,
-    // 	.single_bias            = 2048,
-    // 	.concat_baseaddr        = 0,
-    // 	.concat_ch              = 0
-    // },
-    // //--------------------------
-    // //LAYER 4
-    // //--------------------------
-    // {
-    // 	.conv_mode              = CONV3x3,
-    // 	.ifm_case               = CASE_1x4,
-    // 	.ifm_dtype              = INT8,
-    // 	.ifm_is_padding         = 1,
-    // 	.ifm_is_maxpool         = 1,
-    // 	.ifm_is_leaky_relu      = 1,
-    // 	.is_concat              = 0,
-    // 	.is_upsample            = 0,
-    // 	.ifm_baseaddr           = YOLOv3_IFM_BUFFER_1,
-    // 	.ofm_baseaddr           = YOLOv3_IFM_BUFFER_2,
-    // 	.in_width               = 80,
-    // 	.in_height              = 80,
-    // 	.in_ch                  = 32,
-    // 	.out_ch                 = 64,
-    // 	.pool_stride            = 2,
-    // 	.conv_stride            = 1,
-    // 	.scale_shift            = 16,
-    // 	.bias_shift             = 7,
-    // 	.is_single_scale_bias   = BIAS_PER_CH,
-    // 	.single_scale           = 1024,
-    // 	.single_bias            = 2048,
-    // 	.concat_baseaddr        = 0,
-    // 	.concat_ch              = 0
-    // },
-    // //--------------------------
-    // //LAYER 6
-    // //--------------------------
-    // {
-    // 	.conv_mode              = CONV3x3,
-    // 	.ifm_case               = CASE_1x4,
-    // 	.ifm_dtype              = INT8,
-    // 	.ifm_is_padding         = 1,
-    // 	.ifm_is_maxpool         = 1,
-    // 	.ifm_is_leaky_relu      = 1,
-    // 	.is_concat              = 0,
-    // 	.is_upsample            = 0,
-    // 	.ifm_baseaddr           = YOLOv3_IFM_BUFFER_2,
-    // 	.ofm_baseaddr           = YOLOv3_IFM_BUFFER_3,
-    // 	.in_width               = 40,
-    // 	.in_height              = 40,
-    // 	.in_ch                  = 64,
-    // 	.out_ch                 = 128,
-    // 	.pool_stride            = 2,
-    // 	.conv_stride            = 1,
-    // 	.scale_shift            = 16,
-    // 	.bias_shift             = 8,
-    // 	.is_single_scale_bias   = BIAS_PER_CH,
-    // 	.single_scale           = 1024,
-    // 	.single_bias            = 2048,
-    // 	.concat_baseaddr        = 0,
-    // 	.concat_ch              = 0
-    // },
-    // //--------------------------
-    // //LAYER 8
-    // //--------------------------
-    // {
-    // 	.conv_mode              = CONV3x3,
-    // 	.ifm_case               = CASE_1x4,
-    // 	.ifm_dtype              = INT8,
-    // 	.ifm_is_padding         = 1,
-    // 	.ifm_is_maxpool         = 1,
-    // 	.ifm_is_leaky_relu      = 1,
-    // 	.is_concat              = 0,
-    // 	.is_upsample            = 0,
-    // 	.ifm_baseaddr           = YOLOv3_IFM_BUFFER_3,
-    // 	.ofm_baseaddr           = YOLOv3_IFM_BUFFER_1,
-    // 	.in_width               = 20,
-    // 	.in_height              = 20,
-    // 	.in_ch                  = 128,
-    // 	.out_ch                 = 128,
-    // 	.pool_stride            = 2,
-    // 	.conv_stride            = 1,
-    // 	.scale_shift            = 16,
-    // 	.bias_shift             = 8,
-    // 	.is_single_scale_bias   = BIAS_PER_CH,
-    // 	.single_scale           = 1024,
-    // 	.single_bias            = 2048,
-    // 	.concat_baseaddr        = 0,
-    // 	.concat_ch              = 0
-    // },
-    // //--------------------------
-    // //LAYER 10
-    // //--------------------------
-    // {
-    // 	.conv_mode              = CONV3x3,
-    // 	.ifm_case               = CASE_1x4,
-    // 	.ifm_dtype              = INT8,
-    // 	.ifm_is_padding         = 1,
-    // 	.ifm_is_maxpool         = 1,
-    // 	.ifm_is_leaky_relu      = 1,
-    // 	.is_concat              = 0,
-    // 	.is_upsample            = 0,
-    // 	.ifm_baseaddr           = YOLOv3_IFM_BUFFER_1,
-    // 	.ofm_baseaddr           = YOLOv3_IFM_BUFFER_2,
-    // 	.in_width               = 10,
-    // 	.in_height              = 10,
-    // 	.in_ch                  = 128,
-    // 	.out_ch                 = 128,
-    // 	.pool_stride            = 1,
-    // 	.conv_stride            = 1,
-    // 	.scale_shift            = 16,
-    // 	.bias_shift             = 9,
-    // 	.is_single_scale_bias   = BIAS_PER_CH,
-    // 	.single_scale           = 1024,
-    // 	.single_bias            = 2048,
-    // 	.concat_baseaddr        = 0,
-    // 	.concat_ch              = 0
-    // },
-    // //--------------------------
-    // //LAYER 12
-    // //--------------------------
-    // {
-    // 	.conv_mode              = CONV3x3,
-    // 	.ifm_case               = CASE_2x2,
-    // 	.ifm_dtype              = INT8,
-    // 	.ifm_is_padding         = 1,
-    // 	.ifm_is_maxpool         = 0,
-    // 	.ifm_is_leaky_relu      = 1,
-    // 	.is_concat              = 0,
-    // 	.is_upsample            = 0,
-    // 	.ifm_baseaddr           = YOLOv3_IFM_BUFFER_2,
-    // 	.ofm_baseaddr           = YOLOv3_IFM_BUFFER_1,
-    // 	.in_width               = 10,
-    // 	.in_height              = 10,
-    // 	.in_ch                  = 128,
-    // 	.out_ch                 = 128,
-    // 	.pool_stride            = 0,
-    // 	.conv_stride            = 1,
-    // 	.scale_shift            = 16,
-    // 	.bias_shift             = 9,
-    // 	.is_single_scale_bias   = BIAS_PER_CH,
-    // 	.single_scale           = 1024,
-    // 	.single_bias            = 2048,
-    // 	.concat_baseaddr        = 0,
-    // 	.concat_ch              = 0
-    // },
-    // //--------------------------
-    // //LAYER 13
-    // //--------------------------
-    // {
-    // 	.conv_mode              = CONV1x1,
-    // 	.ifm_case               = CASE_2x2,
-    // 	.ifm_dtype              = INT8,
-    // 	.ifm_is_padding         = 0,
-    // 	.ifm_is_maxpool         = 0,
-    // 	.ifm_is_leaky_relu      = 0,
-    // 	.is_concat              = 0,
-    // 	.is_upsample            = 0,
-    // 	.ifm_baseaddr           = YOLOv3_IFM_BUFFER_1,
-    // 	.ofm_baseaddr           = YOLOv3_YOLO_OUT_1,
-    // 	.in_width               = 10,
-    // 	.in_height              = 10,
-    // 	.in_ch                  = 128,
-    // 	.out_ch                 = 195,
-    // 	.pool_stride            = 0,
-    // 	.conv_stride            = 1,
-    // 	.scale_shift            = 16,
-    // 	.bias_shift             = 8,
-    // 	.is_single_scale_bias   = BIAS_PER_CH,
-    // 	.single_scale           = 1024,
-    // 	.single_bias            = 2048,
-    // 	.concat_baseaddr        = 0,
-    // 	.concat_ch              = 0
-    // },
+        .concat_ch = 0}};
+NPU_LayerConfig NPU_TINY_YOLOV3_STORE_Config[] = {
+    //-------------------------------------------------------------
+    // STORE dataset
+    //--------------------------------------------------------------
+    //--------------------------
+    // LAYER 0
+    //--------------------------
+    {
+        .conv_mode = CONV3x3,
+        .ifm_case = CASE_1x4,
+        .ifm_dtype = UINT8,
+        .ifm_is_padding = 1,
+        .ifm_is_maxpool = 1,
+        .ifm_is_leaky_relu = 1,
+        .is_concat = 0,
+        .is_upsample = 0,
+        .ifm_baseaddr = YOLOv3_INPUT_IMAGE,
+        .ofm_baseaddr = YOLOv3_IFM_BUFFER_2,
+        .in_width = 320,
+        .in_height = 320,
+        .in_ch = 3,
+        .out_ch = 16,
+        .pool_stride = 2,
+        .conv_stride = 1,
+        .scale_shift = 16,
+        .bias_shift = 9,
+        .is_single_scale_bias = BIAS_PER_CH,
+        .single_scale = 1024,
+        .single_bias = 2048,
+        .concat_baseaddr = 0,
+        .concat_ch = 0},
+    //--------------------------
+    // LAYER 2
+    //--------------------------
+    {
+        .conv_mode = CONV3x3,
+        .ifm_case = CASE_1x4,
+        .ifm_dtype = INT8,
+        .ifm_is_padding = 1,
+        .ifm_is_maxpool = 1,
+        .ifm_is_leaky_relu = 1,
+        .is_concat = 0,
+        .is_upsample = 0,
+        .ifm_baseaddr = YOLOv3_IFM_BUFFER_2,
+        .ofm_baseaddr = YOLOv3_IFM_BUFFER_1,
+        .in_width = 160,
+        .in_height = 160,
+        .in_ch = 16,
+        .out_ch = 32,
+        .pool_stride = 2,
+        .conv_stride = 1,
+        .scale_shift = 16,
+        .bias_shift = 6,
+        .is_single_scale_bias = BIAS_PER_CH,
+        .single_scale = 1024,
+        .single_bias = 2048,
+        .concat_baseaddr = 0,
+        .concat_ch = 0},
+    //--------------------------
+    // LAYER 4
+    //--------------------------
+    {
+        .conv_mode = CONV3x3,
+        .ifm_case = CASE_1x4,
+        .ifm_dtype = INT8,
+        .ifm_is_padding = 1,
+        .ifm_is_maxpool = 1,
+        .ifm_is_leaky_relu = 1,
+        .is_concat = 0,
+        .is_upsample = 0,
+        .ifm_baseaddr = YOLOv3_IFM_BUFFER_1,
+        .ofm_baseaddr = YOLOv3_IFM_BUFFER_2,
+        .in_width = 80,
+        .in_height = 80,
+        .in_ch = 32,
+        .out_ch = 64,
+        .pool_stride = 2,
+        .conv_stride = 1,
+        .scale_shift = 16,
+        .bias_shift = 7,
+        .is_single_scale_bias = BIAS_PER_CH,
+        .single_scale = 1024,
+        .single_bias = 2048,
+        .concat_baseaddr = 0,
+        .concat_ch = 0},
+    //--------------------------
+    // LAYER 6
+    //--------------------------
+    {
+        .conv_mode = CONV3x3,
+        .ifm_case = CASE_1x4,
+        .ifm_dtype = INT8,
+        .ifm_is_padding = 1,
+        .ifm_is_maxpool = 1,
+        .ifm_is_leaky_relu = 1,
+        .is_concat = 0,
+        .is_upsample = 0,
+        .ifm_baseaddr = YOLOv3_IFM_BUFFER_2,
+        .ofm_baseaddr = YOLOv3_IFM_BUFFER_3,
+        .in_width = 40,
+        .in_height = 40,
+        .in_ch = 64,
+        .out_ch = 128,
+        .pool_stride = 2,
+        .conv_stride = 1,
+        .scale_shift = 16,
+        .bias_shift = 8,
+        .is_single_scale_bias = BIAS_PER_CH,
+        .single_scale = 1024,
+        .single_bias = 2048,
+        .concat_baseaddr = 0,
+        .concat_ch = 0},
+    //--------------------------
+    // LAYER 8
+    //--------------------------
+    {
+        .conv_mode = CONV3x3,
+        .ifm_case = CASE_1x4,
+        .ifm_dtype = INT8,
+        .ifm_is_padding = 1,
+        .ifm_is_maxpool = 1,
+        .ifm_is_leaky_relu = 1,
+        .is_concat = 0,
+        .is_upsample = 0,
+        .ifm_baseaddr = YOLOv3_IFM_BUFFER_3,
+        .ofm_baseaddr = YOLOv3_IFM_BUFFER_1,
+        .in_width = 20,
+        .in_height = 20,
+        .in_ch = 128,
+        .out_ch = 128,
+        .pool_stride = 2,
+        .conv_stride = 1,
+        .scale_shift = 16,
+        .bias_shift = 8,
+        .is_single_scale_bias = BIAS_PER_CH,
+        .single_scale = 1024,
+        .single_bias = 2048,
+        .concat_baseaddr = 0,
+        .concat_ch = 0},
+    //--------------------------
+    // LAYER 10
+    //--------------------------
+    {
+        .conv_mode = CONV3x3,
+        .ifm_case = CASE_1x4,
+        .ifm_dtype = INT8,
+        .ifm_is_padding = 1,
+        .ifm_is_maxpool = 1,
+        .ifm_is_leaky_relu = 1,
+        .is_concat = 0,
+        .is_upsample = 0,
+        .ifm_baseaddr = YOLOv3_IFM_BUFFER_1,
+        .ofm_baseaddr = YOLOv3_IFM_BUFFER_2,
+        .in_width = 10,
+        .in_height = 10,
+        .in_ch = 128,
+        .out_ch = 128,
+        .pool_stride = 1,
+        .conv_stride = 1,
+        .scale_shift = 16,
+        .bias_shift = 9,
+        .is_single_scale_bias = BIAS_PER_CH,
+        .single_scale = 1024,
+        .single_bias = 2048,
+        .concat_baseaddr = 0,
+        .concat_ch = 0},
+    //--------------------------
+    // LAYER 12
+    //--------------------------
+    {
+        .conv_mode = CONV3x3,
+        .ifm_case = CASE_2x2,
+        .ifm_dtype = INT8,
+        .ifm_is_padding = 1,
+        .ifm_is_maxpool = 0,
+        .ifm_is_leaky_relu = 1,
+        .is_concat = 0,
+        .is_upsample = 0,
+        .ifm_baseaddr = YOLOv3_IFM_BUFFER_2,
+        .ofm_baseaddr = YOLOv3_IFM_BUFFER_1,
+        .in_width = 10,
+        .in_height = 10,
+        .in_ch = 128,
+        .out_ch = 128,
+        .pool_stride = 0,
+        .conv_stride = 1,
+        .scale_shift = 16,
+        .bias_shift = 9,
+        .is_single_scale_bias = BIAS_PER_CH,
+        .single_scale = 1024,
+        .single_bias = 2048,
+        .concat_baseaddr = 0,
+        .concat_ch = 0},
+    //--------------------------
+    // LAYER 13
+    //--------------------------
+    {
+        .conv_mode = CONV1x1,
+        .ifm_case = CASE_2x2,
+        .ifm_dtype = INT8,
+        .ifm_is_padding = 0,
+        .ifm_is_maxpool = 0,
+        .ifm_is_leaky_relu = 0,
+        .is_concat = 0,
+        .is_upsample = 0,
+        .ifm_baseaddr = YOLOv3_IFM_BUFFER_1,
+        .ofm_baseaddr = YOLOv3_YOLO_OUT_1,
+        .in_width = 10,
+        .in_height = 10,
+        .in_ch = 128,
+        .out_ch = 195,
+        .pool_stride = 0,
+        .conv_stride = 1,
+        .scale_shift = 16,
+        .bias_shift = 8,
+        .is_single_scale_bias = BIAS_PER_CH,
+        .single_scale = 1024,
+        .single_bias = 2048,
+        .concat_baseaddr = 0,
+        .concat_ch = 0},
 
-    // //--------------------------
-    // //LAYER 16
-    // //--------------------------
-    // {
-    // 	.conv_mode              = CONV1x1,
-    // 	.ifm_case               = CASE_2x2,
-    // 	.ifm_dtype              = INT8,
-    // 	.ifm_is_padding         = 0,
-    // 	.ifm_is_maxpool         = 0,
-    // 	.ifm_is_leaky_relu      = 1,
-    // 	.is_concat              = 0,
-    // 	.is_upsample            = 1,
-    // 	.ifm_baseaddr           = YOLOv3_IFM_BUFFER_1,
-    // 	.ofm_baseaddr           = YOLOv3_IFM_BUFFER_2,
-    // 	.in_width               = 10,
-    // 	.in_height              = 10,
-    // 	.in_ch                  = 128,
-    // 	.out_ch                 = 128,
-    // 	.pool_stride            = 0,
-    // 	.conv_stride            = 1,
-    // 	.scale_shift            = 16,
-    // 	.bias_shift             = 7,
-    // 	.is_single_scale_bias   = BIAS_PER_CH,
-    // 	.single_scale           = 1024,
-    // 	.single_bias            = 2048,
-    // 	.concat_baseaddr        = 0,
-    // 	.concat_ch              = 0
-    // },
-    // //--------------------------
-    // //LAYER 8-1
-    // //--------------------------
-    // {
-    // 	.conv_mode              = CONV3x3,
-    // 	.ifm_case               = CASE_1x4,
-    // 	.ifm_dtype              = INT8,
-    // 	.ifm_is_padding         = 1,
-    // 	.ifm_is_maxpool         = 0,
-    // 	.ifm_is_leaky_relu      = 1,
-    // 	.is_concat              = 0,
-    // 	.is_upsample            = 0,
-    // 	.ifm_baseaddr           = YOLOv3_IFM_BUFFER_3,
-    // 	.ofm_baseaddr           = YOLOv3_CONCAT_BUFFER,
-    // 	.in_width               = 20,
-    // 	.in_height              = 20,
-    // 	.in_ch                  = 128,
-    // 	.out_ch                 = 128,
-    // 	.pool_stride            = 0,
-    // 	.conv_stride            = 1,
-    // 	.scale_shift            = 16,
-    // 	.bias_shift             = 8,
-    // 	.is_single_scale_bias   = BIAS_PER_CH,
-    // 	.single_scale           = 1024,
-    // 	.single_bias            = 2048,
-    // 	.concat_baseaddr        = 0,
-    // 	.concat_ch              = 0
-    // },
-    // //--------------------------
-    // //LAYER 19
-    // //--------------------------
-    // {
-    // 	.conv_mode              = CONV3x3,
-    // 	.ifm_case               = CASE_2x2,
-    // 	.ifm_dtype              = INT8,
-    // 	.ifm_is_padding         = 1,
-    // 	.ifm_is_maxpool         = 0,
-    // 	.ifm_is_leaky_relu      = 1,
-    // 	.is_concat              = 1,
-    // 	.is_upsample            = 0,
-    // 	.ifm_baseaddr           = YOLOv3_IFM_BUFFER_2,
-    // 	.ofm_baseaddr           = YOLOv3_IFM_BUFFER_1,
-    // 	.in_width               = 20,
-    // 	.in_height              = 20,
-    // 	.in_ch                  = 256,
-    // 	.out_ch                 = 128,
-    // 	.pool_stride            = 0,
-    // 	.conv_stride            = 1,
-    // 	.scale_shift            = 16,
-    // 	.bias_shift             = 9,
-    // 	.is_single_scale_bias   = BIAS_PER_CH,
-    // 	.single_scale           = 1024,
-    // 	.single_bias            = 2048,
-    // 	.concat_baseaddr        = YOLOv3_CONCAT_BUFFER,
-    // 	.concat_ch              = 128
-    // },
-    // //--------------------------
-    // //LAYER 20
-    // //--------------------------
-    // {
-    // 	.conv_mode              = CONV1x1,
-    // 	.ifm_case               = CASE_2x2,
-    // 	.ifm_dtype              = INT8,
-    // 	.ifm_is_padding         = 0,
-    // 	.ifm_is_maxpool         = 0,
-    // 	.ifm_is_leaky_relu      = 0,
-    // 	.is_concat              = 0,
-    // 	.is_upsample            = 0,
-    // 	.ifm_baseaddr           = YOLOv3_IFM_BUFFER_1,
-    // 	.ofm_baseaddr           = YOLOv3_YOLO_OUT_2,
-    // 	.in_width               = 20,
-    // 	.in_height              = 20,
-    // 	.in_ch                  = 128,
-    // 	.out_ch                 = 195,
-    // 	.pool_stride            = 0,
-    // 	.conv_stride            = 1,
-    // 	.scale_shift            = 16,
-    // 	.bias_shift             = 7,
-    // 	.is_single_scale_bias   = BIAS_PER_CH,
-    // 	.single_scale           = 1024,
-    // 	.single_bias            = 2048,
-    // 	.concat_baseaddr        = 0,
-    // 	.concat_ch              = 0
-    // }
-};
+    //--------------------------
+    // LAYER 16
+    //--------------------------
+    {
+        .conv_mode = CONV1x1,
+        .ifm_case = CASE_2x2,
+        .ifm_dtype = INT8,
+        .ifm_is_padding = 0,
+        .ifm_is_maxpool = 0,
+        .ifm_is_leaky_relu = 1,
+        .is_concat = 0,
+        .is_upsample = 1,
+        .ifm_baseaddr = YOLOv3_IFM_BUFFER_1,
+        .ofm_baseaddr = YOLOv3_IFM_BUFFER_2,
+        .in_width = 10,
+        .in_height = 10,
+        .in_ch = 128,
+        .out_ch = 128,
+        .pool_stride = 0,
+        .conv_stride = 1,
+        .scale_shift = 16,
+        .bias_shift = 7,
+        .is_single_scale_bias = BIAS_PER_CH,
+        .single_scale = 1024,
+        .single_bias = 2048,
+        .concat_baseaddr = 0,
+        .concat_ch = 0},
+    //--------------------------
+    // LAYER 8-1
+    //--------------------------
+    {
+        .conv_mode = CONV3x3,
+        .ifm_case = CASE_1x4,
+        .ifm_dtype = INT8,
+        .ifm_is_padding = 1,
+        .ifm_is_maxpool = 0,
+        .ifm_is_leaky_relu = 1,
+        .is_concat = 0,
+        .is_upsample = 0,
+        .ifm_baseaddr = YOLOv3_IFM_BUFFER_3,
+        .ofm_baseaddr = YOLOv3_CONCAT_BUFFER,
+        .in_width = 20,
+        .in_height = 20,
+        .in_ch = 128,
+        .out_ch = 128,
+        .pool_stride = 0,
+        .conv_stride = 1,
+        .scale_shift = 16,
+        .bias_shift = 8,
+        .is_single_scale_bias = BIAS_PER_CH,
+        .single_scale = 1024,
+        .single_bias = 2048,
+        .concat_baseaddr = 0,
+        .concat_ch = 0},
+    //--------------------------
+    // LAYER 19
+    //--------------------------
+    {
+        .conv_mode = CONV3x3,
+        .ifm_case = CASE_2x2,
+        .ifm_dtype = INT8,
+        .ifm_is_padding = 1,
+        .ifm_is_maxpool = 0,
+        .ifm_is_leaky_relu = 1,
+        .is_concat = 1,
+        .is_upsample = 0,
+        .ifm_baseaddr = YOLOv3_IFM_BUFFER_2,
+        .ofm_baseaddr = YOLOv3_IFM_BUFFER_1,
+        .in_width = 20,
+        .in_height = 20,
+        .in_ch = 256,
+        .out_ch = 128,
+        .pool_stride = 0,
+        .conv_stride = 1,
+        .scale_shift = 16,
+        .bias_shift = 9,
+        .is_single_scale_bias = BIAS_PER_CH,
+        .single_scale = 1024,
+        .single_bias = 2048,
+        .concat_baseaddr = YOLOv3_CONCAT_BUFFER,
+        .concat_ch = 128},
+    //--------------------------
+    // LAYER 20
+    //--------------------------
+    {
+        .conv_mode = CONV1x1,
+        .ifm_case = CASE_2x2,
+        .ifm_dtype = INT8,
+        .ifm_is_padding = 0,
+        .ifm_is_maxpool = 0,
+        .ifm_is_leaky_relu = 0,
+        .is_concat = 0,
+        .is_upsample = 0,
+        .ifm_baseaddr = YOLOv3_IFM_BUFFER_1,
+        .ofm_baseaddr = YOLOv3_YOLO_OUT_2,
+        .in_width = 20,
+        .in_height = 20,
+        .in_ch = 128,
+        .out_ch = 195,
+        .pool_stride = 0,
+        .conv_stride = 1,
+        .scale_shift = 16,
+        .bias_shift = 7,
+        .is_single_scale_bias = BIAS_PER_CH,
+        .single_scale = 1024,
+        .single_bias = 2048,
+        .concat_baseaddr = 0,
+        .concat_ch = 0}};
 const int layer_num_TINY_YOLOV3 = ARRAY_SIZE(NPU_TINY_YOLOV3_Config);
+const int layer_num_TINY_YOLOV3_STORE = ARRAY_SIZE(NPU_TINY_YOLOV3_STORE_Config);
 
 void empty_func(dropout_layer l, network_state state)
 {
@@ -2998,17 +2994,44 @@ void parse_network_cfg_npu(network *net, char *filename)
     // 2. Send weight and bias
     //--------------------------------------------------
     int npu_layer = 0;
+    if (net->n == 22)
+    {
+        store_flag = true;
+        printf("STORE true\n");
+    }
+    else if (net->n == 24)
+    {
+        store_flag = false;
+        printf("STORE false\n");
+    }
     for (int l = 0; l < net->n; l++)
     {
-        if (net->layers[l].type == CONVOLUTIONAL)
+        if (store_flag)
         {
-            net->layers[l].layer_npu = NPU_TINY_YOLOV3_Config[npu_layer++];
+            if (net->layers[l].type == CONVOLUTIONAL)
+            {
+                net->layers[l].layer_npu = NPU_TINY_YOLOV3_STORE_Config[npu_layer++];
+            }
+            else if (net->layers[l].type == ROUTE)
+            {
+                if (net->layers[l].n == 2)
+                {
+                    net->layers[l].layer_npu = NPU_TINY_YOLOV3_STORE_Config[npu_layer++];
+                }
+            }
         }
-        else if (net->layers[l].type == ROUTE)
+        else
         {
-            if (net->layers[l].n == 2)
+            if (net->layers[l].type == CONVOLUTIONAL)
             {
                 net->layers[l].layer_npu = NPU_TINY_YOLOV3_Config[npu_layer++];
+            }
+            else if (net->layers[l].type == ROUTE)
+            {
+                if (net->layers[l].n == 2)
+                {
+                    net->layers[l].layer_npu = NPU_TINY_YOLOV3_Config[npu_layer++];
+                }
             }
         }
     }
@@ -3046,7 +3069,17 @@ void parse_network_cfg_npu(network *net, char *filename)
 
             char *wgt_filename;
             // asprintf(&wgt_filename, "../DATASET/TINY_YOLOv3/CONV00/weight00.bin");
-            asprintf(&wgt_filename, "../DATASET/TINY_YOLOv3/CONV%02d/weight%02d.bin", l, l);
+            //  #ifndef __STORE__
+            if (!store_flag)
+            {
+                asprintf(&wgt_filename, "../DATASET/TINY_YOLOv3/CONV%02d/weight%02d.bin", l, l);
+            }
+            // #endif
+            // #ifdef __STORE__
+            else
+            {
+                asprintf(&wgt_filename, "../DATASET/TINY_YOLOv3_store/CONV%02d/weight%02d.bin", l, l);
+            }
             int wgtfile_fd = open(wgt_filename, O_RDONLY);
             if (wgtfile_fd < 0)
             {
@@ -3571,8 +3604,8 @@ void load_shortcut_weights(layer l, FILE *fp)
     read_bytes = fread(l.weights, sizeof(float), num, fp);
     if (read_bytes > 0 && read_bytes < num)
         printf("\n Warning: Unexpected end of wights-file! l.weights - l.index = %d \n", l.index);
-        // for (int i = 0; i < l.nweights; ++i) printf(" %f, ", l.weights[i]);
-        // printf(" read_bytes = %d \n\n", read_bytes);
+    // for (int i = 0; i < l.nweights; ++i) printf(" %f, ", l.weights[i]);
+    // printf(" read_bytes = %d \n\n", read_bytes);
 #ifdef GPU
     if (gpu_index >= 0)
     {
@@ -3588,8 +3621,8 @@ void load_implicit_weights(layer l, FILE *fp)
     read_bytes = fread(l.weights, sizeof(float), num, fp);
     if (read_bytes > 0 && read_bytes < num)
         printf("\n Warning: Unexpected end of wights-file! l.weights - l.index = %d \n", l.index);
-        // for (int i = 0; i < l.nweights; ++i) printf(" %f, ", l.weights[i]);
-        // printf(" read_bytes = %d \n\n", read_bytes);
+    // for (int i = 0; i < l.nweights; ++i) printf(" %f, ", l.weights[i]);
+    // printf(" read_bytes = %d \n\n", read_bytes);
 #ifdef GPU
     if (gpu_index >= 0)
     {

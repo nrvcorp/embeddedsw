@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 
 void handleMode(Mode mode)
 {
-    const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/pliers/frame_00010.png";
+    const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/probe/frame_00095.png";
     // const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/glasses/frame_00005.png";
 
     cv::Mat frame = cv::imread(img_file_pth, cv::IMREAD_GRAYSCALE);
