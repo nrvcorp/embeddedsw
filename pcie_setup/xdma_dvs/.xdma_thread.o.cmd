@@ -47,6 +47,7 @@ deps_/home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_dvs/xdma_thread.o := \
     $(wildcard include/config/PROFILE_ALL_BRANCHES) \
     $(wildcard include/config/STACK_VALIDATION) \
     $(wildcard include/config/CFI_CLANG) \
+    $(wildcard include/config/64BIT) \
   arch/x86/include/generated/asm/rwonce.h \
   include/asm-generic/rwonce.h \
   include/linux/kasan-checks.h \
@@ -57,7 +58,6 @@ deps_/home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_dvs/xdma_thread.o := \
     $(wildcard include/config/UID16) \
     $(wildcard include/config/ARCH_DMA_ADDR_T_64BIT) \
     $(wildcard include/config/PHYS_ADDR_T_64BIT) \
-    $(wildcard include/config/64BIT) \
     $(wildcard include/config/ARCH_32BIT_USTAT_F_TINODE) \
   include/uapi/linux/types.h \
   arch/x86/include/generated/uapi/asm/types.h \

@@ -763,7 +763,6 @@ void *DVS::double_buf_bin_writer_no_drop(int total_read_frame_num)
         check_init++;
     }
 
-    int read_frame_num = 0;
     for (int read_frame_num = 0; read_frame_num < total_read_frame_num; read_frame_num++)
     {
         read_frame(frame_buffers[read_frame_num]);
