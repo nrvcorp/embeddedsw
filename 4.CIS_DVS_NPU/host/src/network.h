@@ -254,10 +254,10 @@ extern "C"
 #define ROI_INFLATION (float)(1.8)
 #define DVS_ROI_MIN_SIZE 250
 #define CIS_ROI_MIN_SIZE 416
-#define CIS_DVS_OFFSET_X 0.213
-#define CIS_DVS_OFFSET_Y 0.093
-#define CIS_DVS_SCALE_X 0.88
-#define CIS_DVS_SCALE_Y 1.20
+#define CIS_DVS_OFFSET_X 0.1075
+#define CIS_DVS_OFFSET_Y -0.227
+#define CIS_DVS_SCALE_X 0.843
+#define CIS_DVS_SCALE_Y 1.129
 #define DMA_BUFFER_GRP_NUM (DVS_FPS / DISPLAY_FPS)
 #define waitkey_delay (1000 / DISPLAY_FPS)
 

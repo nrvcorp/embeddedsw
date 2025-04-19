@@ -238,8 +238,8 @@ int NPU_Run_layer(network *net, NPU_LayerConfig *cur_layer)
 	usleep(1);
 	*((uint32_t *)(net->user_base + AXILITE_DATA_VSYNC)) = (uint32_t)(1);
 	msync(net->user_base + AXILITE_DATA_VSYNC, 4, MS_SYNC);
-	*((uint32_t *)(net->user_base + AXILITE_DATA_VSYNC)) = (uint32_t)(0);
-	msync(net->user_base + AXILITE_DATA_VSYNC, 4, MS_SYNC);
+	// *((uint32_t *)(net->user_base + AXILITE_DATA_VSYNC)) = (uint32_t)(0);
+	// msync(net->user_base + AXILITE_DATA_VSYNC, 4, MS_SYNC);
 	usleep(1);
 	return 0;
 }
