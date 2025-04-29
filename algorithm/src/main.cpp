@@ -28,13 +28,15 @@ using namespace std;
 
 enum Mode
 {
-    DVS_VISUALIZE = 1,
-    DVS_ROI_CLUSTERING = 2,
-    DVS_ROI_AVG_BASE = 3,
-    DVS_ROI_PROPOSED = 4,
-    DVS_ROI_PROPOSED_MULTIOBJECT = 5,
-    DVS_ROI_PROPOSED_ANGLED = 6,
-    DVS_ROI_PROPOSED_MULTI_CONTOUR = 7
+    TEST_ROI_AVG = 1,
+    TEST_ROI_PROPOSED = 2,
+    DVS_VISUALIZE = 3,
+    DVS_ROI_CLUSTERING = 4,
+    DVS_ROI_AVG_BASE = 5,
+    DVS_ROI_PROPOSED = 6,
+    DVS_ROI_PROPOSED_MULTIOBJECT = 7,
+    DVS_ROI_PROPOSED_ANGLED = 8,
+    DVS_ROI_PROPOSED_MULTI_CONTOUR = 9
 };
 
 void handleMode(Mode mode);
@@ -55,6 +57,8 @@ Mode parseArguments(int argc, char *argv[])
 
     // Define command-line options
     struct option long_options[] = {
+        {"test_avg", no_argument, nullptr, "O"},
+        {"test_proposed", no_argument, nullptr, 'P'},
         {"dvs_visualize", no_argument, nullptr, 'v'},
         {"roi_clustering", no_argument, nullptr, 'c'},
         {"roi_avg", no_argument, nullptr, 'a'},
@@ -66,10 +70,16 @@ Mode parseArguments(int argc, char *argv[])
 
     // Parse command-line arguments
     int opt;
-    while ((opt = getopt_long(argc, argv, "vcapAmM", long_options, nullptr)) != -1)
+    while ((opt = getopt_long(argc, argv, "OPvcapAmM", long_options, nullptr)) != -1)
     {
         switch (opt)
         {
+        case 'O':
+            mode = TEST_ROI_AVG;
+            break;
+        case 'P':
+            mode = TEST_ROI_PROPOSED;
+            break;
         case 'v':
             mode = DVS_VISUALIZE;
             break;
@@ -118,8 +128,18 @@ void handleMode(Mode mode)
         std::cerr << "Image not found!" << std::endl;
     }
 
+    const dataset_pth = "/home/nrvfpga01/xsrc/DATASET";
+
     switch (mode)
     {
+    case TEST_ROI_AVG:
+    {
+        printf("TEST_ROI_AVERAGE with dataset\r\n");
+    }
+    case TEST_ROI_PROPOSED:
+    {
+        printf("TEST_ROI_PROPOSED with dataset\r\n");
+    }
     case DVS_VISUALIZE:
     {
         printf("DVS Visualize mode \n");
