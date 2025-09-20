@@ -308,11 +308,12 @@ void DVS::calc_fps(double &fps, int &frameCount, double &startTime, cv::Mat &fra
     cv::putText(frame, oss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
 }
 
-void DVS::display_stream(bool is_flip)
+void DVS::display_stream(bool is_flip)//, bool fix_display_rate, double display_fps)
 {
     // double fps = 0.0;
     // int frameCount = 0;
     // double startTime = cv::getTickCount();
+    // int display_count = 0;
     while (true)
     {
         // initialize cv::Mat frame
@@ -342,7 +343,17 @@ void DVS::display_stream(bool is_flip)
         // display using mutex locking
         display_mutex.lock_display();
 
-        cv::imshow("DVS camera", frame);
+        // if(fix_display_rate){
+        //     int display_thresh = (fps / display_fps);
+        //     if(display_count + accum_num >= display_thresh){
+        //         display_count = display_count + accum_num - display_thresh;
+        //         cv::imshow("DVS camera", frame);
+        //     }else{
+        //         display_count = display_coun 
+        //     }
+        // }else{
+            cv::imshow("DVS camera", frame);
+        // }
 
         // press ESC to quit
         if (cv::waitKey(1) == 27)
@@ -568,7 +579,7 @@ void DVS::check_frame_drop()
         {
             // if frame num is inconsistent, print error message
             error_num++;
-            std::cout << "ERROR NUM: " << std::dec << error_num << std::endl;
+            std::cout << "ERROR NUM: " << std::dec << error_num << ", FRAME_SKIP = "<< prev_frame_num << ", " << frame_num << std::endl;
         }
 
         prev_frame_num = frame_num;
@@ -709,6 +720,82 @@ void *DVS::double_buf_bin_writer()
 
     file.close();
     free(bin_name);
+    return nullptr;
+}
+
+void *DVS::double_buf_bin_writer_no_drop(int total_read_frame_num)
+{
+    char *bin_name = NULL;
+
+    time_t current_time;
+    struct tm *local_time;
+
+    // based on current time, determine the name of output file
+    time(&current_time);
+    local_time = localtime(&current_time);
+    if (asprintf(&bin_name, "./bin_files/data_%04d-%02d-%02d_%02d-%02d-%02d.bin",
+                 local_time->tm_year + 1900,
+                 local_time->tm_mon + 1,
+                 local_time->tm_mday,
+                 local_time->tm_hour,
+                 local_time->tm_min,
+                 local_time->tm_sec) == -1)
+    {
+        perror("Error creating bin file name");
+        return nullptr;
+    }
+
+    // open file descriptor to write bin file to
+    std::ofstream file(bin_name, std::ios::binary | std::ios::app);
+    if (!file.is_open())
+    {
+        perror("Failed to open file for writing.");
+        return nullptr;
+    }
+
+    int prev_frame_num;
+    int prev_timestamp;
+    int check_init = 0;
+    int error_num = 0;
+    int frame_num;
+    uint32_t timestamp;
+    char *dvs_buffer = (char *)malloc(frame_bytes * sizeof(char));
+
+    std::vector<char *> frame_buffers(total_read_frame_num);
+
+    for (int i = 0; i < total_read_frame_num; ++i)
+    {
+        frame_buffers[i] = (char *)malloc(frame_bytes * sizeof(char));
+    }
+
+    while (check_init < 3000)
+    {
+        read_frame(buffer);
+        check_init++;
+    }
+
+    for (int read_frame_num = 0; read_frame_num < total_read_frame_num; read_frame_num++)
+    {
+        read_frame(frame_buffers[read_frame_num]);
+
+        // check frame num consistency
+        decode_header(frame_buffers[read_frame_num], frame_num, timestamp);
+        if ((prev_frame_num + 1 != frame_num) && (prev_frame_num != (frame_num + 255)))
+        {
+            error_num++;
+        }
+        prev_frame_num = frame_num;
+    }
+
+    std::cout << "ERROR NUM: " << std::dec << error_num << std::endl;
+    for (int read_frame_num = 0; read_frame_num < total_read_frame_num; read_frame_num++)
+    {
+        file.write(frame_buffers[read_frame_num], frame_bytes);
+    }
+
+    file.close();
+    free(bin_name);
+
     return nullptr;
 }
 

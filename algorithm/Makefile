@@ -1,8 +1,8 @@
 # Compiler and flags
 CXX ?= g++
 LDFLAGS = -pthread
-CXXFLAGS = -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_LARGE_FILE_SOURCE $(shell pkg-config --cflags opencv4)
-LDLIBS = -lpng $(shell pkg-config --libs opencv4)
+CXXFLAGS = -std=c++17 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_LARGE_FILE_SOURCE $(shell pkg-config --cflags opencv4)
+LDLIBS   = -lpng $(shell pkg-config --libs opencv4) -lstdc++fs
 
 # Source and object files
 SRC_DIR = src

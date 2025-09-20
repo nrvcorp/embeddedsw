@@ -2,6 +2,7 @@
 #include <thread>
 #include <vector>
 #include <opencv2/opencv.hpp>
+#include <opencv2/viz.hpp>
 #include <iostream>
 #include <cassert>
 #include <fcntl.h>
@@ -18,7 +19,9 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <filesystem>
 
+#include "visualize.hpp"
 #include "dvs_roi_alg.hpp"
 
 using namespace cv;
@@ -26,10 +29,15 @@ using namespace std;
 
 enum Mode
 {
-    DVS_ROI_CLUSTERING = 1,
-    DVS_ROI_AVG_BASE = 2,
-    DVS_ROI_PROPOSED = 3,
-    DVS_ROI_PROPOSED_MULTIOBJECT = 4
+    TEST_ROI_AVG = 1,
+    TEST_ROI_PROPOSED = 2,
+    DVS_VISUALIZE = 3,
+    DVS_ROI_CLUSTERING = 4,
+    DVS_ROI_AVG_BASE = 5,
+    DVS_ROI_PROPOSED = 6,
+    DVS_ROI_PROPOSED_MULTIOBJECT = 7,
+    DVS_ROI_PROPOSED_ANGLED = 8,
+    DVS_ROI_PROPOSED_MULTI_CONTOUR = 9
 };
 
 void handleMode(Mode mode);
@@ -44,10 +52,76 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+Mode parseArguments(int argc, char *argv[])
+{
+    Mode mode = DVS_ROI_PROPOSED; // Default mode
+
+    // Define command-line options
+    struct option long_options[] = {
+        {"test_avg", no_argument, nullptr, 'O'},
+        {"test_proposed", no_argument, nullptr, 'P'},
+        {"dvs_visualize", no_argument, nullptr, 'v'},
+        {"roi_clustering", no_argument, nullptr, 'c'},
+        {"roi_avg", no_argument, nullptr, 'a'},
+        {"roi_proposed", no_argument, nullptr, 'p'},
+        {"roi_proposed_angled", no_argument, nullptr, 'A'},
+        {"roi_proposed_multi", no_argument, nullptr, 'm'},
+        {"roi_proposed_multi_contour", no_argument, nullptr, 'M'},
+        {nullptr, 0, nullptr, 0}};
+
+    // Parse command-line arguments
+    int opt;
+    while ((opt = getopt_long(argc, argv, "OPvcapAmM", long_options, nullptr)) != -1)
+    {
+        switch (opt)
+        {
+        case 'O':
+            mode = TEST_ROI_AVG;
+            break;
+        case 'P':
+            mode = TEST_ROI_PROPOSED;
+            break;
+        case 'v':
+            mode = DVS_VISUALIZE;
+            break;
+        case 'c':
+            // clustering based DVS ROI algorithm
+            mode = DVS_ROI_CLUSTERING;
+            break;
+        case 'a':
+            // average based DVS ROI algorithm
+            mode = DVS_ROI_AVG_BASE;
+            break;
+        case 'p':
+            // proposed ROI algorithm
+            mode = DVS_ROI_PROPOSED;
+            break;
+        case 'A':
+            mode = DVS_ROI_PROPOSED_ANGLED;
+            break;
+        case 'm':
+            // proposed ROI multi algorithm
+            mode = DVS_ROI_PROPOSED_MULTIOBJECT;
+            break;
+        case 'M':
+            // proposed ROI multi contour algorithm
+            mode = DVS_ROI_PROPOSED_MULTI_CONTOUR;
+            break;
+        default:
+            fprintf(stderr, "Usage: %s [--roi_clustering | --roi_avg | --roi_proposed]\n", argv[0]);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return mode;
+}
+
 void handleMode(Mode mode)
 {
-    const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/pliers/frame_00010.png";
+    // const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/pliers/frame_00010.png";
+    // const char *img_file_pth = "./examples/irregular_shape/low_lighting/non_accumulated/pliers/frame_00059.png";
     // const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/glasses/frame_00005.png";
+    const char *img_file_pth = "../../DATASET/60fps/HDR/vaccume/frame_00048.png";
 
     cv::Mat frame = cv::imread(img_file_pth, cv::IMREAD_GRAYSCALE);
     if (frame.empty())
@@ -55,8 +129,160 @@ void handleMode(Mode mode)
         std::cerr << "Image not found!" << std::endl;
     }
 
+    const char *dataset_pth = "/home/nrvfpga01/xsrc/DATASET/60fps/LL/vaccume";
+
     switch (mode)
     {
+    case TEST_ROI_AVG:
+    {
+        namespace fs = std::filesystem;
+
+        std::cout << "TEST_ROI_AVERAGE over dataset: "
+                  << dataset_pth << '\n';
+
+        /* ---------------- 파일 수집 ---------------- */
+        std::vector<fs::path> image_list;
+        for (auto &p : fs::recursive_directory_iterator(
+                 dataset_pth,
+                 fs::directory_options::skip_permission_denied))
+        {
+            std::string ext = p.path().extension().string();
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            if (ext == ".png")
+                image_list.emplace_back(p.path());
+        }
+
+        if (image_list.empty())
+        {
+            std::cerr << "No *.png found under " << dataset_pth << '\n';
+            break;
+        }
+
+        /* ---------------- 평가 루프 ---------------- */
+        double sum_ciou = 0.0;
+        size_t cnt = 0;
+
+        for (const auto &img_path : image_list)
+        {
+            cv::Mat img = cv::imread(img_path.string(), cv::IMREAD_GRAYSCALE);
+            if (img.empty())
+            {
+                std::cerr << "Cannot open: " << img_path << '\n';
+                continue;
+            }
+
+            fs::path label_path = img_path;
+            label_path.replace_extension(".txt");
+            Bbox gt;
+            if (!load_gt_one(label_path.string(), img.cols, img.rows, gt))
+                continue; // GT 없으면 skip
+
+            Bbox pred = dvs_roi_average_based(img, 10);
+
+            sum_ciou += ciou(pred, gt); // ★ IoU → CIoU
+            ++cnt;
+        }
+
+        if (cnt == 0)
+        {
+            std::cerr << "No GT labels found!\n";
+            break;
+        }
+
+        std::cout << "Images: " << cnt
+                  << " | Mean CIoU (avg) = " << (sum_ciou / cnt) << '\n';
+        break;
+    }
+    case TEST_ROI_PROPOSED:
+    {
+        namespace fs = std::filesystem;
+
+        std::cout << "TEST_ROI_PROPOSED over dataset: "
+                  << dataset_pth << '\n';
+
+        /* ---------------- 파일 수집 ---------------- */
+        std::vector<fs::path> image_list;
+        for (auto &p : fs::recursive_directory_iterator(
+                 dataset_pth,
+                 fs::directory_options::skip_permission_denied))
+        {
+            std::string ext = p.path().extension().string();
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            if (ext == ".png")
+                image_list.emplace_back(p.path());
+        }
+
+        if (image_list.empty())
+        {
+            std::cerr << "No *.png found under " << dataset_pth << '\n';
+            break;
+        }
+
+        /* ---------------- 평가 루프 ---------------- */
+        double sum_ciou = 0.0;
+        size_t cnt = 0;
+
+        for (const auto &img_path : image_list)
+        {
+            cv::Mat img = cv::imread(img_path.string(), cv::IMREAD_GRAYSCALE);
+            if (img.empty())
+            {
+                std::cerr << "Cannot open: " << img_path << '\n';
+                continue;
+            }
+
+            fs::path label_path = img_path;
+            label_path.replace_extension(".txt");
+            Bbox gt;
+            if (!load_gt_one(label_path.string(), img.cols, img.rows, gt))
+                continue;
+
+            std::cout << " Image Path: " << img_path << endl;
+
+            Bbox pred = dvs_roi_proposed(img, 4, 20, 8);
+
+            sum_ciou += ciou(pred, gt); // ★
+            ++cnt;
+        }
+
+        if (cnt == 0)
+        {
+            std::cerr << "No GT labels found!\n";
+            break;
+        }
+
+        std::cout << "Images: " << cnt
+                  << " | Mean CIoU (proposed) = " << (sum_ciou / cnt) << '\n';
+        break;
+    }
+    case DVS_VISUALIZE:
+    {
+        printf("DVS Visualize mode \n");
+
+        static cv::Mat acc = cv::Mat::zeros(frame.size(), CV_32FC1);
+        const float EVENT_INCREMENT = 4.0;
+        const float DECAY_VALUE = 1.0;
+
+        for (int y = 0; y < frame.rows; ++y)
+        {
+            for (int x = 0; x < frame.cols; ++x)
+            {
+                uchar pixel = frame.at<uchar>(y, x);
+                if (pixel != 128)
+                    acc.at<float>(y, x) += EVENT_INCREMENT;
+                else
+                    acc.at<float>(y, x) -= DECAY_VALUE;
+            }
+        }
+
+        // Clip values
+        cv::threshold(acc, acc, 0, 255, cv::THRESH_TOZERO);
+
+        // 3D visualization
+        visualize3D(acc);
+
+        break;
+    }
     case DVS_ROI_CLUSTERING:
     {
         printf("DVS ROI Clustering mode \n");
@@ -143,6 +369,11 @@ void handleMode(Mode mode)
             5,  /* roi_event_score */
             25, /* row_score_threshold */
             10 /* roi_height_min_threshold */);
+        // Bbox bbox = dvs_roi_proposed(
+        //     frame,
+        //     50, /* roi_event_score */
+        //     60, /* row_score_threshold */
+        //     3 /* roi_height_min_threshold */);
 
         auto end = std::chrono::high_resolution_clock::now();
         double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
@@ -162,6 +393,43 @@ void handleMode(Mode mode)
         break;
     }
 
+    case DVS_ROI_PROPOSED_ANGLED:
+    {
+        printf("DVS ROI PROPOSED ANGLED mode\n");
+        auto start = std::chrono::high_resolution_clock::now();
+
+        auto rois = dvs_roi_proposed_angled(
+            frame,
+            5,  // roi_event_score
+            20, // row_score_threshold
+            10, // roi_height_min_threshold
+            10, // max_vertical_gap
+            20, // min_roi_width
+            20  // min_roi_height
+        );
+
+        auto end = std::chrono::high_resolution_clock::now();
+        double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+        std::cout << "Algorithm took " << elapsed_ms << " ms" << std::endl;
+
+        cv::Mat visual_out = cv::Mat(frame.size(), CV_8UC3);
+        cv::cvtColor(frame, visual_out, cv::COLOR_GRAY2BGR);
+
+        for (const auto &roi : rois)
+        {
+            cv::rectangle(visual_out,
+                          cv::Point(roi.lx, roi.ly),
+                          cv::Point(roi.hx, roi.hy),
+                          cv::Scalar(0, 255, 0), 2);
+        }
+
+        cv::imshow("Multi ROI Visualization", visual_out);
+        cv::waitKey(0);
+
+        cv::destroyAllWindows();
+        break;
+    }
+
     case DVS_ROI_PROPOSED_MULTIOBJECT:
     {
         printf("DVS ROI PROPOSED MULTI mode\n");
@@ -171,7 +439,53 @@ void handleMode(Mode mode)
             frame,
             5,  // roi_event_score
             20, // row_score_threshold
-            5,  // roi_height_min_threshold
+            10, // roi_height_min_threshold
+            10, // max_vertical_gap
+            20, // min_roi_width
+            20  // min_roi_height
+        );
+        // auto rois = dvs_roi_proposed_multiobject(
+        //     frame,
+        //     50, // roi_event_score
+        //     60, // row_score_threshold
+        //     20, // roi_height_min_threshold
+        //     30, // max_vertical_gap
+        //     20, // min_roi_width
+        //     20  // min_roi_height
+        // );
+
+        auto end = std::chrono::high_resolution_clock::now();
+        double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+        std::cout << "Algorithm took " << elapsed_ms << " ms" << std::endl;
+
+        cv::Mat visual_out = cv::Mat(frame.size(), CV_8UC3);
+        cv::cvtColor(frame, visual_out, cv::COLOR_GRAY2BGR);
+
+        for (const auto &roi : rois)
+        {
+            cv::rectangle(visual_out,
+                          cv::Point(roi.lx, roi.ly),
+                          cv::Point(roi.hx, roi.hy),
+                          cv::Scalar(0, 255, 0), 2);
+        }
+
+        cv::imshow("Multi ROI Visualization", visual_out);
+        cv::waitKey(0);
+
+        cv::destroyAllWindows();
+        break;
+    }
+
+    case DVS_ROI_PROPOSED_MULTI_CONTOUR:
+    {
+        printf("DVS ROI PROPOSED MULTI CONTOUR mode\n");
+        auto start = std::chrono::high_resolution_clock::now();
+
+        auto rois = dvs_roi_proposed_multi_contour(
+            frame,
+            5,  // roi_event_score
+            20, // row_score_threshold
+            10, // roi_height_min_threshold
             10, // max_vertical_gap
             20, // min_roi_width
             20  // min_roi_height
@@ -205,47 +519,4 @@ void handleMode(Mode mode)
         exit(EXIT_FAILURE);
     }
     }
-}
-
-Mode parseArguments(int argc, char *argv[])
-{
-    Mode mode = DVS_ROI_PROPOSED; // Default mode
-
-    // Define command-line options
-    struct option long_options[] = {
-        {"roi_clustering", no_argument, nullptr, 'c'},
-        {"roi_avg", no_argument, nullptr, 'a'},
-        {"roi_proposed", no_argument, nullptr, 'p'},
-        {"roi_proposed_multi", no_argument, nullptr, 'm'},
-        {nullptr, 0, nullptr, 0}};
-
-    // Parse command-line arguments
-    int opt;
-    while ((opt = getopt_long(argc, argv, "capm", long_options, nullptr)) != -1)
-    {
-        switch (opt)
-        {
-        case 'c':
-            // clustering based DVS ROI algorithm
-            mode = DVS_ROI_CLUSTERING;
-            break;
-        case 'a':
-            // average based DVS ROI algorithm
-            mode = DVS_ROI_AVG_BASE;
-            break;
-        case 'p':
-            // proposed ROI algorithm
-            mode = DVS_ROI_PROPOSED;
-            break;
-        case 'm':
-            // proposed ROI multi algorithm
-            mode = DVS_ROI_PROPOSED_MULTIOBJECT;
-            break;
-        default:
-            fprintf(stderr, "Usage: %s [--roi_clustering | --roi_avg | --roi_proposed]\n", argv[0]);
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    return mode;
 }
