@@ -54,4 +54,16 @@ typedef struct
     cv::Point end;
 } Streak;
 
+double iou(const Bbox &a, const Bbox &b);
+double ciou(const Bbox &a, const Bbox &b);
+
+Bbox yolo2bbox(
+    double xc, double yc, double w, double h,
+    int width, int height);
+
+bool load_gt_one(
+    const std::string &path,
+    int img_w, int img_h,
+    Bbox &bbox_out);
+
 #endif

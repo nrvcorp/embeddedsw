@@ -170,7 +170,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
     // always run NPU regardless of ROI detection
     bool always_run_npu = false;
     // always run NPU, at fixed(full) ROI size
-    bool full_frame_inference = true;
+    bool full_frame_inference = false;
     //---------------------------------------
     // NPU, CIS and DVS objects
     NPU *npu = new NPU(

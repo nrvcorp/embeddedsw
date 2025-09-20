@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <filesystem>
 
 #include "visualize.hpp"
 #include "dvs_roi_alg.hpp"
@@ -120,7 +121,7 @@ void handleMode(Mode mode)
     // const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/pliers/frame_00010.png";
     // const char *img_file_pth = "./examples/irregular_shape/low_lighting/non_accumulated/pliers/frame_00059.png";
     // const char *img_file_pth = "./examples/irregular_shape/low_lighting/accumulated/glasses/frame_00005.png";
-    const char *img_file_pth = "./examples/regular_shape/normal_lighting/accumulated/person/frame_00093.png";
+    const char *img_file_pth = "../../DATASET/60fps/HDR/vaccume/frame_00048.png";
 
     cv::Mat frame = cv::imread(img_file_pth, cv::IMREAD_GRAYSCALE);
     if (frame.empty())
@@ -128,17 +129,131 @@ void handleMode(Mode mode)
         std::cerr << "Image not found!" << std::endl;
     }
 
-    const char *dataset_pth = "/home/nrvfpga01/xsrc/DATASET";
+    const char *dataset_pth = "/home/nrvfpga01/xsrc/DATASET/60fps/LL/vaccume";
 
     switch (mode)
     {
     case TEST_ROI_AVG:
     {
-        printf("TEST_ROI_AVERAGE with dataset\r\n");
+        namespace fs = std::filesystem;
+
+        std::cout << "TEST_ROI_AVERAGE over dataset: "
+                  << dataset_pth << '\n';
+
+        /* ---------------- 파일 수집 ---------------- */
+        std::vector<fs::path> image_list;
+        for (auto &p : fs::recursive_directory_iterator(
+                 dataset_pth,
+                 fs::directory_options::skip_permission_denied))
+        {
+            std::string ext = p.path().extension().string();
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            if (ext == ".png")
+                image_list.emplace_back(p.path());
+        }
+
+        if (image_list.empty())
+        {
+            std::cerr << "No *.png found under " << dataset_pth << '\n';
+            break;
+        }
+
+        /* ---------------- 평가 루프 ---------------- */
+        double sum_ciou = 0.0;
+        size_t cnt = 0;
+
+        for (const auto &img_path : image_list)
+        {
+            cv::Mat img = cv::imread(img_path.string(), cv::IMREAD_GRAYSCALE);
+            if (img.empty())
+            {
+                std::cerr << "Cannot open: " << img_path << '\n';
+                continue;
+            }
+
+            fs::path label_path = img_path;
+            label_path.replace_extension(".txt");
+            Bbox gt;
+            if (!load_gt_one(label_path.string(), img.cols, img.rows, gt))
+                continue; // GT 없으면 skip
+
+            Bbox pred = dvs_roi_average_based(img, 10);
+
+            sum_ciou += ciou(pred, gt); // ★ IoU → CIoU
+            ++cnt;
+        }
+
+        if (cnt == 0)
+        {
+            std::cerr << "No GT labels found!\n";
+            break;
+        }
+
+        std::cout << "Images: " << cnt
+                  << " | Mean CIoU (avg) = " << (sum_ciou / cnt) << '\n';
+        break;
     }
     case TEST_ROI_PROPOSED:
     {
-        printf("TEST_ROI_PROPOSED with dataset\r\n");
+        namespace fs = std::filesystem;
+
+        std::cout << "TEST_ROI_PROPOSED over dataset: "
+                  << dataset_pth << '\n';
+
+        /* ---------------- 파일 수집 ---------------- */
+        std::vector<fs::path> image_list;
+        for (auto &p : fs::recursive_directory_iterator(
+                 dataset_pth,
+                 fs::directory_options::skip_permission_denied))
+        {
+            std::string ext = p.path().extension().string();
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            if (ext == ".png")
+                image_list.emplace_back(p.path());
+        }
+
+        if (image_list.empty())
+        {
+            std::cerr << "No *.png found under " << dataset_pth << '\n';
+            break;
+        }
+
+        /* ---------------- 평가 루프 ---------------- */
+        double sum_ciou = 0.0;
+        size_t cnt = 0;
+
+        for (const auto &img_path : image_list)
+        {
+            cv::Mat img = cv::imread(img_path.string(), cv::IMREAD_GRAYSCALE);
+            if (img.empty())
+            {
+                std::cerr << "Cannot open: " << img_path << '\n';
+                continue;
+            }
+
+            fs::path label_path = img_path;
+            label_path.replace_extension(".txt");
+            Bbox gt;
+            if (!load_gt_one(label_path.string(), img.cols, img.rows, gt))
+                continue;
+
+            std::cout << " Image Path: " << img_path << endl;
+
+            Bbox pred = dvs_roi_proposed(img, 4, 20, 8);
+
+            sum_ciou += ciou(pred, gt); // ★
+            ++cnt;
+        }
+
+        if (cnt == 0)
+        {
+            std::cerr << "No GT labels found!\n";
+            break;
+        }
+
+        std::cout << "Images: " << cnt
+                  << " | Mean CIoU (proposed) = " << (sum_ciou / cnt) << '\n';
+        break;
     }
     case DVS_VISUALIZE:
     {
