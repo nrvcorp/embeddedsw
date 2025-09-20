@@ -31,9 +31,9 @@
 #define DVS_FRAME_BASEADDR (DDR_BASEADDR + 0x30000000)
 
 /******************* DISPLAY Setting ******************************/
-#define DVS_FPS 2000
-#define DISPLAY_FPS 60
-#define DISPLAY_DOWNSAMPLE_NUM 15
+#define DVS_FPS 1500
+#define DISPLAY_FPS 3
+#define DISPLAY_DOWNSAMPLE_NUM 100
 #define SAVE_FPS 20
 #define ROI_EVENT_SCORE 5
 #define ROW_SCORE_THRESHOLD 25
@@ -45,10 +45,10 @@
 // #define CIS_DVS_OFFSET_Y -0.1
 // #define CIS_DVS_SCALE_X 0.8
 // #define CIS_DVS_SCALE_Y 1.1
-#define CIS_DVS_OFFSET_X 0.580
-#define CIS_DVS_OFFSET_Y 0.350
-#define CIS_DVS_SCALE_X 0.3
-#define CIS_DVS_SCALE_Y 0.38
+#define CIS_DVS_OFFSET_X 0.1075
+#define CIS_DVS_OFFSET_Y -0.227
+#define CIS_DVS_SCALE_X 0.843
+#define CIS_DVS_SCALE_Y 1.129
 #define DVS_WEIGHT_ALPHA 0.5
 #define CIS_DVS_CALIBRATION_GRID_NUM 20
 #define DMA_BUFFER_GRP_NUM (DVS_FPS / DISPLAY_FPS)

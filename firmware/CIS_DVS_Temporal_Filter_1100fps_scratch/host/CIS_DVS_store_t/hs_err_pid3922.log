@@ -1,0 +1,12 @@
+#
+# An unexpected error has occurred (11)
+#
+Stack:
+/tools/Xilinx/Vivado/2021.2/tps/lnx64/jre11.0.11_9/lib//server/libjvm.so(+0xbefecb) [0x7f1434a71ecb]
+/tools/Xilinx/Vivado/2021.2/tps/lnx64/jre11.0.11_9/lib//server/libjvm.so(JVM_handle_linux_signal+0xd1) [0x7f1434a78c81]
+/tools/Xilinx/Vivado/2021.2/tps/lnx64/jre11.0.11_9/lib//server/libjvm.so(+0xbead23) [0x7f1434a6cd23]
+/tools/Xilinx/Vivado/2021.2/tps/lnx64/javafx-sdk-11.0.2/lib/libjfxwebkit.so(+0x205ae18) [0x7f13d50b5e18]
+/lib/x86_64-linux-gnu/libc.so.6(+0x43090) [0x7f1491229090]
+/tools/Xilinx/Vivado/2021.2/lib/lnx64.o/librdi_coregen.so(std::_Sp_counted_ptr_inplace<HRSBMoTunnel, std::allocator<HRSBMoTunnel>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()+0xb) [0x7f147ca4aa9b]
+/tools/Xilinx/Vivado/2021.2/lib/lnx64.o/librdi_rsb.so(Java_ui_data_rsbi_RSBBase_1getName+0x41) [0x7f144d804b11]
+[0x7f1424868b04]

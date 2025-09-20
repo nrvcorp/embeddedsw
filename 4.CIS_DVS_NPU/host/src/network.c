@@ -329,6 +329,20 @@ int buffer_compare(char *buffer, char *buffer_ref, size_t max_idx)
     return 0;
 }
 
+void buffer_display_bin(char *buffer, size_t max_idx)
+{
+    printf("buffer display:\n");
+    max_idx = 512;
+    for (int idx = 0; idx < max_idx; idx += 16)
+    {
+        for (int sub_idx = 0; sub_idx < 16; sub_idx++)
+        {
+            printf("%02x ", buffer[idx + sub_idx] & 0xff);
+        }
+        printf("\n");
+    }
+}
+
 void forward_network(network net, network_state state)
 {
     state.workspace = net.workspace;
@@ -421,11 +435,11 @@ void forward_network(network net, network_state state)
             // printf("starting layer convolutional%d\r\n\r\n", i);
             if (i != 0)
             {
-                uint32_t status = *((uint32_t *)(net.user_base + AXILITE_STATUS));
-                while ((status & 0x7) != 0x3)
+                uint32_t status = *((uint32_t *)(net.user_base + AXILITE_LAYER_DONE));
+                while (!status)
                 {
-                    status = *((uint32_t *)(net.user_base + AXILITE_STATUS));
-                    msync(net.user_base + AXILITE_STATUS, 1, MS_SYNC);
+                    status = *((uint32_t *)(net.user_base + AXILITE_LAYER_DONE));
+                    msync(net.user_base + AXILITE_LAYER_DONE, 1, MS_SYNC);
                 };
 
                 // ////----------------------verify output of previous fused layer------------------------------------
@@ -490,11 +504,11 @@ void forward_network(network net, network_state state)
             if (l.n == 2)
             {
                 prev_i = i;
-                uint32_t status = *((uint32_t *)(net.user_base + AXILITE_STATUS));
-                while ((status & 0x7) != 0x3)
+                uint32_t status = *((uint32_t *)(net.user_base + AXILITE_LAYER_DONE));
+                while (!status)
                 {
-                    status = *((uint32_t *)(net.user_base + AXILITE_STATUS));
-                    msync(net.user_base + AXILITE_STATUS, 1, MS_SYNC);
+                    status = *((uint32_t *)(net.user_base + AXILITE_LAYER_DONE));
+                    msync(net.user_base + AXILITE_LAYER_DONE, 1, MS_SYNC);
                 };
                 NPU_Run_layer(&net, &l.layer_npu);
             }
@@ -515,11 +529,11 @@ void forward_network(network net, network_state state)
             int out_bytes = npu_out_w * npu_out_h * 4 * npu_out_c * 8;
             char *out_buffer = (char *)malloc(out_bytes);
             // 1. Read from FPGA to state.input
-            uint32_t status = *((uint32_t *)(net.user_base + AXILITE_STATUS));
-            while ((status & 0x7) != 0x3)
+            uint32_t status = *((uint32_t *)(net.user_base + AXILITE_LAYER_DONE));
+            while (!status)
             {
-                status = *((uint32_t *)(net.user_base + AXILITE_STATUS));
-                msync(net.user_base + AXILITE_STATUS, 1, MS_SYNC);
+                status = *((uint32_t *)(net.user_base + AXILITE_LAYER_DONE));
+                msync(net.user_base + AXILITE_LAYER_DONE, 1, MS_SYNC);
             };
             // printf("finished checking status green\n") ;
             // printf("Predicted in %lf milli-seconds.\n", ((double)get_time_point() - time) / 1000);
@@ -545,17 +559,32 @@ void forward_network(network net, network_state state)
             // store to state.input(float32, (c, h, w))
             float yolo_scale;
             float yolo_bias;
-            if (l.w == 13)
-            { // l.w == 13
-                yolo_scale = YOLOv3_YOLO_OUT_1_SCALE;
-                yolo_bias = YOLOv3_YOLO_OUT_1_BIAS;
+            if (store_flag)
+            {
+                if (l.w <= 13)
+                { // l.w == 13
+                    yolo_scale = YOLOv3_YOLO_OUT_1_STORE_SCALE;
+                    yolo_bias = YOLOv3_YOLO_OUT_1_STORE_BIAS;
+                }
+                else
+                {
+                    yolo_scale = YOLOv3_YOLO_OUT_2_STORE_SCALE;
+                    yolo_bias = YOLOv3_YOLO_OUT_2_STORE_BIAS;
+                }
             }
             else
             {
-                yolo_scale = YOLOv3_YOLO_OUT_2_SCALE;
-                yolo_bias = YOLOv3_YOLO_OUT_2_BIAS;
+                if (l.w <= 13)
+                { // l.w == 13
+                    yolo_scale = YOLOv3_YOLO_OUT_1_SCALE;
+                    yolo_bias = YOLOv3_YOLO_OUT_1_BIAS;
+                }
+                else
+                {
+                    yolo_scale = YOLOv3_YOLO_OUT_2_SCALE;
+                    yolo_bias = YOLOv3_YOLO_OUT_2_BIAS;
+                }
             }
-
             //--------------------verify int8 non-formatted ofm of previous layer---------------------------
             // printf("verifying layer %d:\n", i);
             // char * outref_fname;

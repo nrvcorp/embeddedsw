@@ -237,11 +237,13 @@ public:
      */
     void calc_fps(double &fps, int &frameCount, double &startTime, cv::Mat &frame);
 
+    //  * @param fix_display_rate whether to fix display rate to display_fps
+    //  * @param display_fps actual display FPS to be fixed by fixed_display_rate
     /**
      * displays DVS frame to opencv video, multithreading-safe
      * @param is_flip horizontal flip image.
      */
-    void display_stream(bool is_flip = false);
+    void display_stream(bool is_flip = false);//, bool fix_display_rate = false, double display_fps = 60.0);
     /**
      * @brief for use with CIS::save_png_stream
      * Saves DVS frames in PNG format in unison with CIS::save_png_stream saving CIS images at 60Hz.
@@ -289,6 +291,11 @@ public:
      * inside directory ./bin_files
      */
     void *double_buf_bin_writer();
+    /*
+     * Save total_read_frame_num to DRAM and save it after.
+     * inside directory ./bin_files
+     */
+    void *double_buf_bin_writer_no_drop(int total_read_frame_num);
     /**
      * Reconstructs a video file from the bin file stored by DVS_STORE mode (double_buf_reader and double_buf_bin_writer)
      * @param path_to_bin path to input bin file
