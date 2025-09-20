@@ -1,1 +1,1 @@
-cmd_/home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_dvs/xdma_dvs.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_dvs/xdma_dvs.ko /home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_dvs/xdma_dvs.o /home/nrvfpga01/xsrc/embeddedsw/pcie_setup/xdma_dvs/xdma_dvs.mod.o;  true
+savedcmd_xdma_dvs.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T /usr/src/linux/linux-6.16.1/scripts/module.lds -o xdma_dvs.ko xdma_dvs.o xdma_dvs.mod.o .module-common.o

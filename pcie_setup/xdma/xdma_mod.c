@@ -45,8 +45,6 @@ MODULE_LICENSE("Dual BSD/GPL");
 static int xpdev_cnt;
 
 static const struct pci_device_id pci_ids[] = {
-	{ PCI_DEVICE(0x10ee, 0xa884), },
-	{ PCI_DEVICE(0x10ee, 0xa883), },
 	{ PCI_DEVICE(0x10ee, 0x9048), },
 	{ PCI_DEVICE(0x10ee, 0x9044), },
 	{ PCI_DEVICE(0x10ee, 0x9042), },
@@ -232,109 +230,7 @@ err_out:
 	return rv;
 }
 
-static int probe_multi(struct pci_dev *pdev, const struct pci_device_id *id)
-{
-	// for (int i=0; i < 2; i++){
-		int rv = 0;
-		struct xdma_pci_dev *xpdev = NULL;
-		struct xdma_dev *xdev;
-		void *hndl;
-
-		xpdev = xpdev_alloc(pdev);
-		if (!xpdev)
-			return -ENOMEM;
-
-		hndl = xdma_device_open(DRV_MODULE_NAME, pdev, &xpdev->user_max,
-				&xpdev->h2c_channel_max, &xpdev->c2h_channel_max);
-		if (!hndl) {
-			rv = -EINVAL;
-			goto err_out;
-		}
-
-		if (xpdev->user_max > MAX_USER_IRQ) {
-			pr_err("Maximum users limit reached\n");
-			rv = -EINVAL;
-			goto err_out;
-		}
-
-		if (xpdev->h2c_channel_max > XDMA_CHANNEL_NUM_MAX) {
-			pr_err("Maximun H2C channel limit reached\n");
-			rv = -EINVAL;
-			goto err_out;
-		}
-
-		if (xpdev->c2h_channel_max > XDMA_CHANNEL_NUM_MAX) {
-			pr_err("Maximun C2H channel limit reached\n");
-			rv = -EINVAL;
-			goto err_out;
-		}
-
-		if (!xpdev->h2c_channel_max && !xpdev->c2h_channel_max)
-			pr_warn("NO engine found!\n");
-
-		if (xpdev->user_max) {
-			u32 mask = (1 << (xpdev->user_max + 1)) - 1;
-
-			rv = xdma_user_isr_enable(hndl, mask);
-			if (rv)
-				goto err_out;
-		}
-
-		/* make sure no duplicate */
-		xdev = xdev_find_by_pdev(pdev);
-		if (!xdev) {
-			pr_warn("NO xdev found!\n");
-			rv =  -EINVAL;
-			goto err_out;
-		}
-
-		if (hndl != xdev) {
-			pr_err("xdev handle mismatch\n");
-			rv =  -EINVAL;
-			goto err_out;
-		}
-
-		pr_info("%s xdma%d, pdev 0x%p, xdev 0x%p, 0x%p, usr %d, ch %d,%d.\n",
-			dev_name(&pdev->dev), xdev->idx, pdev, xpdev, xdev,
-			xpdev->user_max, xpdev->h2c_channel_max,
-			xpdev->c2h_channel_max);
-
-		xpdev->xdev = hndl;
-
-		rv = xpdev_create_interfaces(xpdev);
-		if (rv)
-			goto err_out;
-
-		dev_set_drvdata(&pdev->dev, xpdev);
-	// }
-
-	return 0;
-
-err_out:
-	pr_err("pdev 0x%p, err %d.\n", pdev, rv);
-	xpdev_free(xpdev);
-	return rv;
-}
-
 static void remove_one(struct pci_dev *pdev)
-{
-	struct xdma_pci_dev *xpdev;
-
-	if (!pdev)
-		return;
-
-	xpdev = dev_get_drvdata(&pdev->dev);
-	if (!xpdev)
-		return;
-
-	pr_info("pdev 0x%p, xdev 0x%p, 0x%p.\n",
-		pdev, xpdev, xpdev->xdev);
-	xpdev_free(xpdev);
-
-	dev_set_drvdata(&pdev->dev, NULL);
-}
-
-static void remove_multi(struct pci_dev *pdev)
 {
 	struct xdma_pci_dev *xpdev;
 
@@ -397,11 +293,12 @@ static void xdma_error_resume(struct pci_dev *pdev)
 	struct xdma_pci_dev *xpdev = dev_get_drvdata(&pdev->dev);
 
 	pr_info("dev 0x%p,0x%p.\n", pdev, xpdev);
-#if KERNEL_VERSION(5, 7, 0) <= LINUX_VERSION_CODE
+#if PCI_AER_NAMECHANGE
 	pci_aer_clear_nonfatal_status(pdev);
 #else
 	pci_cleanup_aer_uncorrect_error_status(pdev);
 #endif
+
 }
 
 #if KERNEL_VERSION(4, 13, 0) <= LINUX_VERSION_CODE
@@ -447,22 +344,13 @@ static const struct pci_error_handlers xdma_err_handler = {
 #endif
 };
 
-// static struct pci_driver pci_driver = {
-// 	.name = DRV_MODULE_NAME,
-// 	.id_table = pci_ids,
-// 	.probe = probe_one,
-// 	.remove = remove_one,
-// 	.err_handler = &xdma_err_handler,
-// };
-
 static struct pci_driver pci_driver = {
 	.name = DRV_MODULE_NAME,
 	.id_table = pci_ids,
-	.probe = probe_multi,
-	.remove = remove_multi,
+	.probe = probe_one,
+	.remove = remove_one,
 	.err_handler = &xdma_err_handler,
 };
-
 
 static int xdma_mod_init(void)
 {

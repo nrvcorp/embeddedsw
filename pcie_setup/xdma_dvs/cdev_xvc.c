@@ -224,67 +224,6 @@ cleanup:
 	return rv;
 }
 
-/* maps the PCIe BAR into user space for memory-like access using mmap() */
-int user_bridge_mmap(struct file *file, struct vm_area_struct *vma)
-{
-	struct xdma_dev *xdev;
-	struct xdma_cdev *xcdev = (struct xdma_cdev *)file->private_data;
-	unsigned long off;
-	unsigned long phys;
-	unsigned long vsize;
-	unsigned long psize;
-	int rv;
-
-	printk("DEBUG###### __user birdge mmap 1\n");
-	rv = xcdev_check(__func__, xcdev, 0);
-	if (rv < 0)
-		return rv;
-	xdev = xcdev->xdev;
-
-	off = vma->vm_pgoff << PAGE_SHIFT;
-	/* BAR physical address */
-	phys = pci_resource_start(xdev->pdev, xcdev->bar) + off;
-	vsize = vma->vm_end - vma->vm_start;
-	/* complete resource */
-	psize = pci_resource_end(xdev->pdev, xcdev->bar) -
-		pci_resource_start(xdev->pdev, xcdev->bar) + 1 - off;
-
-	printk("### MM: xvc_bridge_mmap(): 2\n");
-	printk("mmap(): cdev->bar = %d\n", xcdev->bar);
-	dbg_sg("mmap(): xcdev = 0x%08lx\n", (unsigned long)xcdev);
-	dbg_sg("mmap(): cdev->bar = %d\n", xcdev->bar);
-	dbg_sg("mmap(): xdev = 0x%p\n", xdev);
-	dbg_sg("mmap(): pci_dev = 0x%08lx\n", (unsigned long)xdev->pdev);
-
-	dbg_sg("off = 0x%lx\n", off);
-	dbg_sg("start = 0x%llx\n",
-		(unsigned long long)pci_resource_start(xdev->pdev,
-		xcdev->bar));
-	dbg_sg("phys = 0x%lx\n", phys);
-
-	if (vsize > psize)
-		return -EINVAL;
-	/*
-	 * pages must not be cached as this would result in cache line sized
-	 * accesses to the end point
-	 */
-	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-	/*
-	 * prevent touching the pages (byte access) for swap-in,
-	 * and prevent the pages from being swapped out
-	 */
-	vma->vm_flags |= VMEM_FLAGS;
-	/* make MMIO accessible to user space */
-	rv = io_remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT,
-			vsize, vma->vm_page_prot);
-	dbg_sg("vma=0x%p, vma->vm_start=0x%lx, phys=0x%lx, size=%lu = %d\n",
-		vma, vma->vm_start, phys >> PAGE_SHIFT, vsize, rv);
-
-	if (rv)
-		return -EAGAIN;
-	return 0;
-}
-
 /*
  * character device file operations for the XVC
  */
@@ -293,7 +232,6 @@ static const struct file_operations xvc_fops = {
 	.open = char_open,
 	.release = char_close,
 	.unlocked_ioctl = xvc_ioctl,
-	.mmap = user_bridge_mmap,
 };
 
 void cdev_xvc_init(struct xdma_cdev *xcdev)

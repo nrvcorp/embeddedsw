@@ -308,11 +308,12 @@ void DVS::calc_fps(double &fps, int &frameCount, double &startTime, cv::Mat &fra
     cv::putText(frame, oss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
 }
 
-void DVS::display_stream(bool is_flip)
+void DVS::display_stream(bool is_flip)//, bool fix_display_rate, double display_fps)
 {
     // double fps = 0.0;
     // int frameCount = 0;
     // double startTime = cv::getTickCount();
+    // int display_count = 0;
     while (true)
     {
         // initialize cv::Mat frame
@@ -342,7 +343,17 @@ void DVS::display_stream(bool is_flip)
         // display using mutex locking
         display_mutex.lock_display();
 
-        cv::imshow("DVS camera", frame);
+        // if(fix_display_rate){
+        //     int display_thresh = (fps / display_fps);
+        //     if(display_count + accum_num >= display_thresh){
+        //         display_count = display_count + accum_num - display_thresh;
+        //         cv::imshow("DVS camera", frame);
+        //     }else{
+        //         display_count = display_coun 
+        //     }
+        // }else{
+            cv::imshow("DVS camera", frame);
+        // }
 
         // press ESC to quit
         if (cv::waitKey(1) == 27)
@@ -568,7 +579,7 @@ void DVS::check_frame_drop()
         {
             // if frame num is inconsistent, print error message
             error_num++;
-            std::cout << "ERROR NUM: " << std::dec << error_num << std::endl;
+            std::cout << "ERROR NUM: " << std::dec << error_num << ", FRAME_SKIP = "<< prev_frame_num << ", " << frame_num << std::endl;
         }
 
         prev_frame_num = frame_num;

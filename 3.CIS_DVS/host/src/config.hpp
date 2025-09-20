@@ -31,9 +31,9 @@
 #define DVS_FRAME_BASEADDR (DDR_BASEADDR + 0x30000000)
 
 /******************* DISPLAY Setting ******************************/
-#define DVS_FPS 2000
-#define DISPLAY_FPS 60
-#define DISPLAY_DOWNSAMPLE_NUM 15
+#define DVS_FPS 1500
+#define DISPLAY_FPS 3
+#define DISPLAY_DOWNSAMPLE_NUM 100
 #define SAVE_FPS 20
 #define ROI_EVENT_SCORE 5
 #define ROW_SCORE_THRESHOLD 25

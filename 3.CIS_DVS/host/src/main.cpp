@@ -137,7 +137,7 @@ void handleMode(Mode mode)
     case CIS_DVS_DISPLAY:
         printf("CIS and DVS display mode\n");
         cis = new CIS(CIS_FRAME_H, CIS_FRAME_W, CIS_FRAME_RDY_BASEADDR, CIS_FRAME_BASEADDR, CIS_BUFFER_NUM, C2H_DEVICE_CIS, H2C_DEVICE_CIS, mutexManager);
-        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, (DVS_FPS / (DISPLAY_FPS)), DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager);
+        dvs = new DVS(DVS_FRAME_H, DVS_FRAME_W, true, /*(DVS_FPS / (DISPLAY_FPS))*/ 1 , DVS_FRAME_RDY_BASEADDR, DVS_FRAME_BASEADDR, DVS_BUFFER_NUM, C2H_DEVICE_DVS, H2C_DEVICE_DVS, mutexManager);
 
         // Start threads for CIS and DVS
         if (cis)
