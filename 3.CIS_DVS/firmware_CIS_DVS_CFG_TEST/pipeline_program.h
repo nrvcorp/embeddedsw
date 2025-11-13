@@ -30,10 +30,12 @@ extern "C" {
 #include "xiicps.h"
 #include "xaxidma.h"
 #include "xtime_l.h"
+#include "debug_config.h"
 
 extern void DmaWriteDoneCallback (XAxiDma_BdRing * RxRingPtr);
 
 extern void configure_buffer_system();
+extern void reset_dvs_buffer_rdy();
 extern XIicPs	IicPsInstance; /* The instance of the PS IIC device */
 extern int InitDVSIIC(void);
 extern int SetupIicDVSInterruptSystem(void);
@@ -42,12 +44,16 @@ extern int StartDVSSensor(void);
 extern int ProgramDVSSensor(struct regval_list DVS_reg_cfg[], const int length);
 extern int DVSWriteData(u16 ByteCount);
 extern int DVSReadData(u16 ByteCount);
+extern void DVSReadReg(u16 addr);
+extern void DVSWriteReg(u16 addr, u8 value); // TODO
+
 extern int start_dvs_cap_pipe();
 extern int config_dvs_cap_path();
 extern int dvs_dma_reset();
 //----------------------------------------------------------------
 
 extern u32 InitializeCsiRxSs(void);
+extern u32 InitializeDphy(void);
 
 extern void SetColorDepth(void);
 
@@ -75,7 +81,15 @@ extern void EnableCSI(void);
 #define BIT_PER_PEL			2
 #define DVS_LINE_SIZE_IN_BYTE 	DVS_FRAME_WIDTH * BIT_PER_PEL / 8	//240
 #define DVS_FRAME_SIZE_IN_BYTE	DVS_FRAME_WIDTH * DVS_FRAME_HEIGHT * BIT_PER_PEL / 8	//172800
-#define DVS_FRAME_HEADER_SIZE_IN_BYTE 8
+
+#define DVS_FRAME_HEADER_BYTES_BASE 	8
+#if(USE_EXTENDED_DVS_FRAME_HEADER)
+#define DVS_FRAME_HEADER_BYTES_EXT 		8
+#else
+#define DVS_FRAME_HEADER_BYTES_EXT 		0
+#endif
+#define DVS_FRAME_HEADER_SIZE_IN_BYTE	(DVS_FRAME_HEADER_BYTES_BASE+DVS_FRAME_HEADER_BYTES_EXT)
+
 
 #define MAX_EVENTS_2FRAMES ((DVS_FRAME_WIDTH) * (DVS_FRAME_HEIGHT) * 2)
 
@@ -86,14 +100,15 @@ extern void EnableCSI(void);
 #define CHROMA_ADDR_OFFSET  (0x01000000U)
 
 #define DVS_BUFFER_RDY 		(DDR_BASEADDR + 0x2000000)
-#define DVS_BUFFER_COMMIT_IDX 		(DDR_BASEADDR + 0x1500000)
-#define DVS_BUFFER_BASEADDR (DDR_BASEADDR + (0x30000000))
+#define DVS_BUFFER_COMMIT_IDX 		(DDR_BASEADDR + 0x1500000) // 현재 DVS 버퍼가 쓰이고있는 위치
+#define DVS_BUFFER_BASEADDR (DDR_BASEADDR + (0x30000000) + DVS_FRAME_HEADER_BYTES_EXT) // 확장된 헤더 공간만큼 앞부분 패딩
 #define DVS_BUFFER_NUM		256
 #define DVS_BUFFER_SIZE		(DVS_FRAME_SIZE_IN_BYTE +DVS_FRAME_HEADER_SIZE_IN_BYTE)  //include header: 0x2a308 = 960 * 720 * (2bit) / 8bit + 8
 #define DVS_BUFFER_TOTAL_SIZE 	DVS_BUFFER_NUM * DVS_BUFFER_SIZE
 #define DVS_BUFFER_HIGH  DVS_BUFFER_BASEADDR + DVS_BUFFER_TOTAL_SIZE - 1
 
-#define BD_LEN				    DVS_BUFFER_SIZE
+#define BD_LEN				(DVS_BUFFER_SIZE - DVS_FRAME_HEADER_BYTES_EXT)
+
 #define COALESCING_COUNT	1
 #define DELAY_TIMER_COUNT 	0
 #define RX_BD_SPACE_BASE	(DDR_BASEADDR + 0x3000000)

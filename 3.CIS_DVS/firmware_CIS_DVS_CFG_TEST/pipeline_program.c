@@ -191,7 +191,7 @@ extern u32 NumOfEmptyDVSBuf;
 #if(CHECK_DVS_BUFFER_HOST_DRAIN)
 int host_delay_count_dvs=0;
 #endif
-#if(CHECK_FIL_BUFFER_HOST_DRAIN)
+#if(CHECK_FIL_BUFFER_HOST_DRAIN && ENABLE_DVS_FILTER)
 extern int host_delay_count_filter;
 #endif
 
@@ -201,6 +201,10 @@ int frame_drop_count_dvs = 0;
 	#if(CHECK_DVS_MULTIPLE_FRAME_DROP)
 int multiple_frame_drop_count_dvs = 0;
 	#endif
+#endif
+
+#if(USE_EXTENDED_DVS_FRAME_HEADER)
+extern volatile u64 test_header;
 #endif
 
 void configure_buffer_system() {
@@ -247,6 +251,13 @@ void configure_buffer_system() {
 
 }
 
+void reset_dvs_buffer_rdy(){
+	//memset((u64 *)frame_rdy[0], 0b0, CIS_BUFFER_NUM);
+	memset((u64 *)dvs_frame_rdy[0], 0b0, DVS_BUFFER_NUM);
+#if(ENABLE_DVS_FILTER)
+	memset((u64 *)fil_frame_rdy[0], 0b0, FIL_BUFFER_NUM);
+#endif
+}
 
 
 
@@ -270,7 +281,12 @@ void DmaWriteDoneCallback (XAxiDma_BdRing * RxRingPtr) {
 	Xil_Out8(dvs_frame_rdy[ wptr ], 0b1);
 	Xil_Out32(DVS_BUFFER_COMMIT_IDX, wptr);
 
-#endif
+	#if(USE_EXTENDED_DVS_FRAME_HEADER)
+	Xil_Out64((dvs_frame_array[wptr]-DVS_FRAME_HEADER_BYTES_EXT), test_header);
+	#endif
+
+#endif // ENABLE_HOST_DIRECT_DVS_ACCESS
+
 
 #if(CHECK_DVS_FRAME_DROP)
 	u64 h;
@@ -287,7 +303,7 @@ void DmaWriteDoneCallback (XAxiDma_BdRing * RxRingPtr) {
 			frame_drop_count_dvs++;
 #if(DVS_FRAME_DROP_LOG_IMMEDIATE)
 			xil_printf("dvs_frame_skip_count= %d\r\n", frame_drop_count_dvs);
-			DEBUG_PRINT(WARNING, "**FRAME SKIP** fnum=%d, tstamp=%d \nprev fnum=%d, prev tstamp=%d\r\n", fnum, tstmp , prev_fnum ,prev_tstmp);
+			DEBUG_PRINT(WARNING, "**FRAME SKIP** fnum=%d, tstamp=%d prev fnum=%d, prev tstamp=%d\r\n", fnum, tstmp , prev_fnum ,prev_tstmp);
 #endif // DVS_FRAME_DROP_LOG_IMMEDIATE
 #if(CHECK_DVS_MULTIPLE_FRAME_DROP)
 			if( fnum-prev_fnum > 2 && prev_fnum-fnum < 254) {
@@ -295,7 +311,7 @@ void DmaWriteDoneCallback (XAxiDma_BdRing * RxRingPtr) {
 				//xil_printf("fnum - prev_fnum = %d, prev_fnum-fnum = %d \r\n", (fnum-prev_fnum) , (prev_fnum-fnum ) );
 #if(DVS_FRAME_DROP_LOG_IMMEDIATE)
 				xil_printf("dvs_multiple_frame_skip_count= %d\r\n", multiple_frame_drop_count_dvs);
-				DEBUG_PRINT(WARNING, "** MULTIPLE FRAME SKIP**\tfnum-prev fnum=%d \r\n", fnum - prev_fnum);
+				DEBUG_PRINT(WARNING, "** MULTIPLE FRAME SKIP** fnum-prev fnum=%d \r\n", fnum - prev_fnum);
 #endif // DVS_FRAME_DROP_LOG_IMMEDIATE
 			}
 #endif // CHECK_DVS_MULTIPLE_FRAME_DROP
@@ -805,6 +821,36 @@ int DVSReadData(u16 ByteCount){
 
 }
 
+void DVSReadReg(u16 addr)
+{
+
+	u8 raddr[2];
+	u8 rdata=0xFF;
+	DVSIICTransmitComplete= FALSE;
+	DVSIICReceiveComplete= FALSE;
+	raddr[0] = (addr >> 8) & 0xFF;
+	raddr[1] = addr & 0xFF;
+	XIicPs_MasterSend(&IicPsInstance, raddr, 2, DVS_ADDR);
+	while (DVSIICTransmitComplete == FALSE);
+	XIicPs_MasterRecv(&IicPsInstance, &rdata, 1, DVS_ADDR);
+	while (DVSIICReceiveComplete == FALSE);
+
+	xil_printf("raddr=0x%04X, value=0x%02X\r\n", addr, rdata);
+}
+void DVSWriteReg(u16 addr, u8 value)
+{
+
+	/*u8 waddr[2];
+	u8 wdata=0xFF;
+	DVSIICTransmitComplete= FALSE;
+	waddr[0] = (addr >> 8) & 0xFF;
+	waddr[1] = addr & 0xFF;
+	XIicPs_MasterSend(&IicPsInstance, waddr, 3, DVS_ADDR);
+	while (DVSIICTransmitComplete == FALSE);
+
+	xil_printf("waddr=0x%04X, value=0x%02X\r\n", addr, wdata);*/
+}
+
 int ProgramDVSSensor(struct regval_list DVS_reg_cfg[], const int length) {
 	int Status;
 	u16 DeviceId;
@@ -846,11 +892,37 @@ int ProgramDVSSensor(struct regval_list DVS_reg_cfg[], const int length) {
 			break;
 		}
 
-		Status = DVSReadData(3);
-		u16 read_result = (DVSIICReadBuf[0] << 8) | (DVSIICReadBuf[1]);
 
-		//xil_printf("Wrote DVS IIC sensor configuration idx = %d, register address: %x, status = %x \r\n", Index, sensor_cfg[Index].Address, Status);
-		//xil_printf("Read Register Address = %x, Actual Register Data = %x,  Read Register Data = %x \r\n", read_result, sensor_cfg[Index].Data, DVSIICReadBuf[2]);
+		if(sensor_cfg[Index].Address != 0x0100){
+			u8 raddr[2];
+			u8 rdata=0xFF;
+			DVSIICTransmitComplete= FALSE;
+			DVSIICReceiveComplete= FALSE;
+			raddr[0] = (sensor_cfg[Index].Address >> 8) & 0xFF;
+			raddr[1] = sensor_cfg[Index].Address & 0xFF;
+			XIicPs_MasterSend(&IicPsInstance, raddr, 2, DVS_ADDR);
+			while (DVSIICTransmitComplete == FALSE);
+			XIicPs_MasterRecv(&IicPsInstance, &rdata, 1, DVS_ADDR);
+			while (DVSIICReceiveComplete == FALSE);
+			if(sensor_cfg[Index].Address == 0x320C){
+				xil_printf("raddr=0x%04X, value=0x%02X\r\n", sensor_cfg[Index].Address, rdata);
+			}
+			if(rdata != sensor_cfg[Index].Data) {
+				xil_printf(TXT_RED"DVS Program Error: addr=0x%04X, wdata=0x%02X, rdata=0x%02X\r\n"TXT_RST,
+						sensor_cfg[Index].Address, sensor_cfg[Index].Data, rdata);
+			}
+		}
+		/*Status = DVSReadData(2);
+		if (Status != XST_SUCCESS) {
+			xil_printf("Read error  idx=%d reg=0x%04X st=0x%X\r\n", Index, addr, Status);
+			//break;
+		}
+
+		u16 read_addr = (DVSIICReadBuf[0] << 8) | (DVSIICReadBuf[1]);
+		if(sensor_cfg[Index].Address == 0x3218){
+			xil_printf("Wrote DVS IIC sensor configuration idx = %d, register address: %x, status = %x \r\n", Index, sensor_cfg[Index].Address, Status);
+			xil_printf("Read Register Address = %x, Actual Register Data = %x,  Read Register Data = %x \r\n", read_addr, sensor_cfg[Index].Data, DVSIICReadBuf[2]);
+		}*/
 	}
 
 	if (Index != (MaxIndex)) {
@@ -1443,7 +1515,7 @@ int DVSDma_WriteSetup(XAxiDma * AxiDmaInstPtr) {
 
 		XAxiDma_BdSetId(BdCurPtr, RxBufferPtr);
 
-		RxBufferPtr += BD_LEN;
+		RxBufferPtr += DVS_BUFFER_SIZE;
 		BdCurPtr = (XAxiDma_Bd *)XAxiDma_BdRingNext(RxRingPtr, BdCurPtr);
 	}
 	/*

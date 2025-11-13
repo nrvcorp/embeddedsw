@@ -49,6 +49,7 @@ extern "C" {
 int sensor_cfg_input(const regval_list *defaults, size_t defaults_len,
                      regval_list *out, size_t out_cap, size_t *out_len);
 
+
 #define ARRAY_LEN(a) (sizeof(a)/sizeof((a)[0]))
 
 #ifdef __cplusplus

@@ -140,7 +140,6 @@
 
 #define RESET_TIMEOUT_COUNTER 10000
 
-#define FRAME_NUM_ERR_THRESH 100	//
 /**************************** Type Definitions *******************************/
 
 /************************** Function Prototypes ******************************/
@@ -192,7 +191,7 @@ u32 Index;
 XPipeline_Cfg Pipeline_Cfg;
 XPipeline_Cfg New_Cfg;
 
-#if	(ENABLE_MENU)
+#if	(ENABLE_MENU && AUTO_TEST_MODE==0)
 XMipi_Menu XmipiMenu;
 extern u8 is_user_input_active;
 #endif
@@ -257,8 +256,11 @@ extern int multiple_frame_drop_count_dvs;
 	#endif
 #endif
 
+#if(USE_EXTENDED_DVS_FRAME_HEADER)
+volatile u64 test_header=0;
+#endif
 
-#if (CHECK_FIL_EVENT_COUNT)
+#if (CHECK_FIL_EVENT_COUNT && ENABLE_DVS_FILTER)
 u32 event_cnt_sum[2] = {0,0};
 u32 event_cnt_min[2] = {~(u32)0,~(u32)0};
 u32 event_cnt_max[2] = {0,0};
@@ -721,6 +723,8 @@ int setup_all(void)
 {
 	u8 Response;
 	u32 Status;
+	static int cfg_num = 0;
+
 	//	XVphy_Config *XVphyCfgPtr;
 	//	XVidC_VideoStream *HdmiTxSsVidStreamPtr;
 
@@ -742,10 +746,11 @@ int setup_all(void)
 	Pipeline_Cfg.Hflip = FALSE;
 
 	/* Video pipeline configuration from user */
-	Pipeline_Cfg.CameraPresent = TRUE;
+	//Pipeline_Cfg.CameraPresent = TRUE; // set later
 
 	/* Default Resolution that to be displayed */
 	Pipeline_Cfg.VideoMode = XVIDC_VM_1920x1080_60_P;
+
 
 	configure_buffer_system();
 
@@ -766,9 +771,11 @@ int setup_all(void)
 	xil_printf("--------------------------------------------------\r\n");
 	xil_printf(TXT_RST);
 
+
 	xil_printf("Please answer the following questions about the hardware setup.");
 	xil_printf("\r\n");
 
+#if(AUTO_TEST_MODE==0)
 	do
 	{
 		xil_printf("Is the camera sensor connected? (Y/N)\r\n");
@@ -786,7 +793,12 @@ int setup_all(void)
 			Pipeline_Cfg.CameraPresent = FALSE;
 			break;
 		}
-	} while (1);
+	} while (1);\
+
+#else
+	Pipeline_Cfg.CameraPresent = TRUE;
+#endif
+
 
 	if (Pipeline_Cfg.CameraPresent)
 		print(TXT_GREEN);
@@ -797,7 +809,7 @@ int setup_all(void)
 			(Pipeline_Cfg.CameraPresent) ? "Connected" : "Disconnected");
 	print(TXT_RST);
 
-	if (!Pipeline_Cfg.CameraPresent) 
+	if (!Pipeline_Cfg.CameraPresent)
 	{
 		Pipeline_Cfg.VideoSrc = XVIDSRC_TPG;
 		xil_printf("Setting TPG as source in absence of Camera sensor.\r\n");
@@ -850,15 +862,15 @@ int setup_all(void)
 	g_FILRxRunning = 1;
 
 	FilRxSetAndRun();
-#endif
 
-#if(ENABLE_DVS_FILTER)
 	fil_frm_cnt = 0;
 #endif
-	frm_cnt = 0; // cis
 	dvs_frm_cnt = 0;
-	wr_ptr = 0; // cis
 	dvs_wr_ptr = 0;
+
+	frm_cnt = 0; // cis
+	wr_ptr = 0; // cis
+
 
 	/* Turn on DVS Sensor */
 	Status = StartDVSSensor();
@@ -879,7 +891,6 @@ int setup_all(void)
 		print(TXT_RED "IRQ init failed.\n\r" TXT_RST);
 		return XST_FAILURE;
 	}
-
 	/* IIC interrupt handlers */
 	SetupIICIntrHandlers();
 
@@ -912,6 +923,8 @@ int setup_all(void)
 	/* MIPI colour depth in bits per clock */
 	SetColorDepth();
 
+
+
 	Status = config_dvs_cap_path();
 	if(Status != XST_SUCCESS)
 	{
@@ -920,6 +933,7 @@ int setup_all(void)
 	}
 
 	print("---------------------------------\r\n");
+
 
 	/* Enable exceptions. */
 	Xil_AssertSetCallback((Xil_AssertCallback)Xil_AssertCallbackRoutine);
@@ -946,11 +960,11 @@ int setup_all(void)
 	MIPI_CONTROLLER_mWriteReg(MIPI_CONTROLLER_BASEADDR,
 				MIPI_CONTROLLER_S00_AXI_SLV_REG1_OFFSET,
 				1);
-	start_dvs_cap_pipe();
 
-	xil_printf(TXT_CYAN"[RESET] waiting for pipeline to drain...\r\n"TXT_RST);
-	sleep(1); //
-	xil_printf("===Done===\r\n");
+	xil_printf(TXT_CYAN"[RESET] start_dvs_cap_pipe() & waiting for pipeline to drain...\r\n"TXT_RST);
+	start_dvs_cap_pipe();
+	usleep(1500); // 1.5 ms
+	xil_printf(TXT_CYAN"===Done===\r\n"TXT_RST);
 
 #if(CHECK_DVS_FRAME_DROP)
 	frame_drop_check_init=1;
@@ -962,6 +976,7 @@ int setup_all(void)
 	#endif
 #endif
 
+#if(AUTO_TEST_MODE==0)
 	do
 	{
 	    xil_printf("\r\nChange sensor settings now?\r\n");
@@ -975,7 +990,7 @@ int setup_all(void)
 		xil_printf("\r\n");
 		if ((Response == 'E') || (Response == 'e'))
 		{
-			EditSensorConfig();
+			Status = EditSensorConfig();
 			break;
 		}
 		else if ((Response == 'D') || (Response == 'd'))
@@ -997,7 +1012,23 @@ int setup_all(void)
 			continue;
 		}
 	} while (1);
+#else
+	// TODO:
+	// After completing the handshake with the host, program DVS with the new configuration values.
+	switch(cfg_num){
+		case 0: {
+			xil_printf("Programming sensor with default configuration.\r\n");
+			Status = ProgramDVSSensor(DVS_regs, length_DVS_regs);
+			break;
+		}
+		case 1: {
+			xil_printf("Programming sensor with 1958fps configuration.\r\n");
+			Status = ProgramDVSSensor(DVS_regs_1958fps, length_DVS_regs_1958fps);
+			break;
+		}
+	}
 
+#endif
 
 	if (Status != XST_SUCCESS)
 	{
@@ -1007,25 +1038,27 @@ int setup_all(void)
 	else
 	{
 		print(TXT_GREEN "PROGRAM DVS SUCCEEDED.\n\r" TXT_RST);
+		// TODO: Update next config flag
+		cfg_num = (cfg_num+1) % 2;
 	}
 	/*************************************************/
+
 
 	start_csi_cap_pipe(Pipeline_Cfg.VideoMode);
 
 	InitImageProcessingPipe();
 
 	/* Start Camera Sensor to capture video */
-
 	StartSensor();
 
-#if	(ENABLE_MENU)
+#if(ENABLE_MENU && AUTO_TEST_MODE==0)
 	XMipi_MenuInitialize(&XmipiMenu, UART_BASEADDR);
 #endif
 
 	New_Cfg = Pipeline_Cfg;
-
 	/* Print the Pipe line configuration */
 	PrintPipeConfig();
+
 
 	DEBUG_PRINT(INFO, "DMA setup is done and will be run.\r\n");
 
@@ -1034,10 +1067,171 @@ int setup_all(void)
 	//slv_reg4_old = slv_reg4;
 	//slv_reg5_old = slv_reg5;
 
+
 	return XST_SUCCESS;
 }
 
+int reset_dvs(void)
+{
+	u8 Response;
+	u32 Status;
 
+	static int cfg_num = 0;
+
+
+	/*Status = InitDVSIIC();
+	if (Status != XST_SUCCESS)
+	{
+		xil_printf(TXT_RED "\n\rDVS IIC Init Failed \n\r" TXT_RST);
+		return XST_FAILURE;
+	}
+	else
+	{
+		print(TXT_GREEN "IIC init SUCCEEDED.\n\r" TXT_RST);
+	}*/
+#if(RESET_DMA_BEFORE_PROGRAM)
+
+	#if(ENABLE_DVS_FILTER)
+		//Filter Setup & Run
+		// Reg1: Set Threshold  ==>> [31:16]OffTh,  [15:0]OnTh
+		// Reg0: Run Filter ==>> 1: Run
+		//u32 Threshold = 0b00000100000010;
+	u32 Threshold = 0b0;
+		//u32 Threshold = 0b11111111111111;
+	DVS_ADAPTIVE_FILTER_mWriteReg(XPAR_DVS_ADAPTIVE_FILTER_0_AXI_LITE_BASEADDR, DVS_ADAPTIVE_FILTER_AXI_Lite_SLV_REG1_OFFSET, Threshold);
+	DVS_ADAPTIVE_FILTER_mWriteReg(XPAR_DVS_ADAPTIVE_FILTER_0_AXI_LITE_BASEADDR, DVS_ADAPTIVE_FILTER_AXI_Lite_SLV_REG0_OFFSET, 1);
+
+	FrameBufferPointerInit();
+	FilRxInit();
+	FilTxInit();
+	g_FILTxRunning = 0;
+	g_FILRxRunning = 1;
+
+	FilRxSetAndRun();
+	#endif
+
+
+	// reset buffer
+	//reset_dvs_buffer_rdy();
+	//dvs_frm_cnt = 0;
+
+	dvs_wr_ptr = 0; // **********
+
+	Status = config_dvs_cap_path();
+	if(Status != XST_SUCCESS)
+	{
+		xil_printf("config_dvs_cap_path() falied\r\n");
+		return XST_FAILURE;
+	}
+
+	print("---------------------------------\r\n");
+
+	xil_printf(TXT_CYAN"[RESET] start_dvs_cap_pipe() & waiting for pipeline to drain...\r\n"TXT_RST);
+	start_dvs_cap_pipe();
+	usleep(1500); // 1.5 ms
+	xil_printf(TXT_CYAN"===Done===\r\n"TXT_RST);
+#endif
+
+
+
+#if(AUTO_TEST_MODE==0)
+	do
+	{
+	    xil_printf("\r\nChange sensor settings now?\r\n");
+	    xil_printf("  [E]dit via UART tool (build UPDATED configuration)\r\n");
+	    xil_printf("  [D]efaults only (skip editing, use BASE configuration)\r\n");
+	    xil_printf("  [P]reset (use predefined PRESET configuration)\r\n");
+	    xil_printf("Select (E/D/P): ");
+
+		Response = XUartPs_RecvByte(UART_BASEADDR);
+		XUartPs_SendByte(UART_BASEADDR, Response);
+		xil_printf("\r\n");
+		if ((Response == 'E') || (Response == 'e'))
+		{
+			Status = EditSensorConfig();
+			break;
+		}
+		else if ((Response == 'D') || (Response == 'd'))
+		{
+			xil_printf("Programming sensor with the default configuration.\r\n");
+			Status = ProgramDVSSensor(DVS_regs, length_DVS_regs);
+			break;
+		}
+		else if ((Response == 'P') || (Response == 'p'))
+		{
+			Status = SelectSensorConfigPreset();
+			if(Status==999) continue;
+			else	break;
+
+		}
+		else
+		{
+			xil_printf("Unknown commend.\r\n");
+			continue;
+		}
+	} while (1);
+#else
+	// TODO:
+	// After completing the handshake with the host, program DVS with the new configuration values.
+	switch(cfg_num){
+		case 0: {
+			xil_printf("Programming sensor with default configuration.\r\n");
+			Status = ProgramDVSSensor(DVS_regs, length_DVS_regs);
+			break;
+		}
+		case 1: {
+			xil_printf("Programming sensor with 1958fps configuration.\r\n");
+			Status = ProgramDVSSensor(DVS_regs_1958fps, length_DVS_regs_1958fps);
+			break;
+		}
+	}
+#endif
+
+	if (Status != XST_SUCCESS)
+	{
+		print(TXT_RED "PROGRAM DVS error.\n\r" TXT_RST);
+		return XST_FAILURE;
+	}
+	else
+	{
+		print(TXT_GREEN "PROGRAM DVS SUCCEEDED.\n\r" TXT_RST);
+		// TODO: Update next config flag
+		cfg_num = (cfg_num+1) % 2;
+	}
+
+#if(CHECK_DVS_FRAME_DROP)
+	frame_drop_check_init=1;
+	#if(!DVS_FRAME_DROP_LOG_IMMEDIATE)
+	frame_drop_count_dvs=0;
+		#if(CHECK_DVS_MULTIPLE_FRAME_DROP)
+	multiple_frame_drop_count_dvs=0;
+		#endif
+	#endif
+#endif
+
+#if(RESET_DMA_BEFORE_PROGRAM)
+	// reset buffer
+	reset_dvs_buffer_rdy();
+	#if(ENABLE_DVS_FILTER)
+	fil_frm_cnt = 0;
+	#endif
+	dvs_frm_cnt = 0;
+	dvs_wr_ptr = 0;
+
+	DEBUG_PRINT(INFO, "DMA setup is done and will be run.\r\n");
+#endif
+
+	New_Cfg = Pipeline_Cfg;
+
+	test_header++;
+
+	//slv_reg2_old = slv_reg2;
+	slv_reg3_old = slv_reg3;
+	//slv_reg4_old = slv_reg4;
+	//slv_reg5_old = slv_reg5;
+
+	return XST_SUCCESS;
+}
 /*****************************************************************************/
 /**
  *
@@ -1065,7 +1259,8 @@ int main(void)
 	XTime reset_timeout_start_t,  reset_timeout_cur_t;
 #endif
 
-#if(ENABLE_MAIN_DEBUG_OUTPUT)
+
+#if(ENABLE_MAIN_DEBUG_OUTPUT && AUTO_TEST_MODE==0)
 	XTime start_t, end_t;
 	XTime_GetTime(&start_t);
 	u8 cnt_ptr=0;
@@ -1082,11 +1277,11 @@ int main(void)
 #if(CHECK_DVS_BUFFER_HOST_DRAIN)
 	int dvs_miss_cnts[2]={0,0};
 #endif
-#if(CHECK_FIL_BUFFER_HOST_DRAIN)
+#if(CHECK_FIL_BUFFER_HOST_DRAIN && ENABLE_DVS_FILTER)
 	int fil_miss_cnts[2]={0,0};
 #endif
 
-#if(CHECK_FILTER_REG_VALUES)
+#if(CHECK_FILTER_REG_VALUES && ENABLE_DVS_FILTER)
 	int frm_event_cnt = 0;
 	u32 kern_size = 0;
 	u32 debug1, debug2, debug3, debug4, debug5, debug6;
@@ -1095,7 +1290,7 @@ int main(void)
 
 	do{
 
-#if(ENABLE_MAIN_DEBUG_OUTPUT)
+#if(ENABLE_MAIN_DEBUG_OUTPUT && AUTO_TEST_MODE==0)
 		XTime_GetTime(&end_t);
 		if( !is_user_input_active && (end_t-start_t)>(COUNTS_PER_SECOND * MAIN_DEBUG_OUTPUT_INTERVAL_SEC))
 		{
@@ -1104,21 +1299,25 @@ int main(void)
 #if(CHECK_DVS_BUFFER_HOST_DRAIN)
 			dvs_miss_cnts[cnt_ptr] = host_delay_count_dvs;
 #endif
-#if(CHECK_FIL_BUFFER_HOST_DRAIN)
+#if(CHECK_FIL_BUFFER_HOST_DRAIN && ENABLE_DVS_FILTER)
 			fil_miss_cnts[cnt_ptr] = host_delay_count_filter;
 #endif
+			xil_printf("==DEBUG MESSAGE BEGIN==\r\n");
 #if(CHECK_FRAME_COUNT)
 			dvs_cnts[cnt_ptr] = dvs_frm_cnt;
 	#if(ENABLE_DVS_FILTER)
 			fil_cnts[cnt_ptr] = fil_frm_cnt;
-	#endif
 			xil_printf("CIS frame count: %d, DVS frame count: %d, fil_frm_cnt: %d\r\n",frm_cnt, dvs_cnts[cnt_ptr],fil_cnts[cnt_ptr]);
 			xil_printf("DVS frame count-fil_frm_cnt: %d, dvs_fps: %d, fil_fps: %d\r\n",dvs_cnts[cnt_ptr]-fil_cnts[cnt_ptr], dvs_cnts[cnt_ptr]-dvs_cnts[!cnt_ptr] ,fil_cnts[cnt_ptr]-fil_cnts[!cnt_ptr]);
+	#else
+			xil_printf("CIS frame count: %d, DVS frame count: %d, DVS FPS: %d\r\n",frm_cnt, dvs_cnts[cnt_ptr], dvs_cnts[cnt_ptr]-dvs_cnts[!cnt_ptr]);
+	#endif
+
 #endif
 #if(CHECK_DVS_BUFFER_HOST_DRAIN)
 			xil_printf("host_read_miss_count(dvs): %d\r\n",dvs_miss_cnts[cnt_ptr]);
 #endif
-#if(CHECK_FIL_BUFFER_HOST_DRAIN)
+#if(CHECK_FIL_BUFFER_HOST_DRAIN && ENABLE_DVS_FILTER)
 			xil_printf("host_read_miss_count/2(filter) %d\r\n",fil_miss_cnts[cnt_ptr]);
 #endif
 #if(CHECK_DVS_FRAME_DROP && !DVS_FRAME_DROP_LOG_IMMEDIATE)
@@ -1127,7 +1326,7 @@ int main(void)
 			xil_printf("dvs_multiple_frame_skip_count= %d\r\n", multiple_frame_drop_count_dvs);
 	#endif
 #endif
-#if (CHECK_FIL_EVENT_COUNT)
+#if (CHECK_FIL_EVENT_COUNT && ENABLE_DVS_FILTER)
 			ShowEventCountAndReset();
 #endif
 			cnt_ptr = !cnt_ptr;
@@ -1138,13 +1337,13 @@ int main(void)
 #elif(CHECK_DVS_ISR_INTERVAL)
 			SwapIntervalBuffers();
 			PrintAndResetInterval(INTERVAL_DVS_DMA_DONE_ISR);
-#elif(CHECK_FIL_ISR_INTERVAL)
+#elif(CHECK_FIL_ISR_INTERVAL && ENABLE_DVS_FILTER)
 			SwapIntervalBuffers();
 			PrintAndResetInterval(INTERVAL_FIL_DMA_DONE_ISR);
 #endif
 
 
-#if(CHECK_FILTER_REG_VALUES)
+#if(CHECK_FILTER_REG_VALUES && ENABLE_DVS_FILTER)
 			frm_event_cnt = DVS_ADAPTIVE_FILTER_mReadReg(XPAR_DVS_ADAPTIVE_FILTER_0_AXI_LITE_BASEADDR, DVS_ADAPTIVE_FILTER_AXI_Lite_SLV_REG2_OFFSET);
 			kern_size = popcount(DVS_ADAPTIVE_FILTER_mReadReg(XPAR_DVS_ADAPTIVE_FILTER_0_AXI_LITE_BASEADDR, DVS_ADAPTIVE_FILTER_AXI_Lite_SLV_REG3_OFFSET));
 			xil_printf("Event Count: %d / %d \r\n", frm_event_cnt, MAX_EVENTS_2FRAMES);
@@ -1179,15 +1378,19 @@ int main(void)
 			xil_printf("slv_reg4 = %x\r\n", slv_reg4);
 			slv_reg5= MIPI_CONTROLLER_mReadReg(MIPI_CONTROLLER_BASEADDR, MIPI_CONTROLLER_S00_AXI_SLV_REG5_OFFSET);
 			xil_printf("slv_reg5 = %x\r\n", slv_reg5); // "mipi_fifo_out_frame[15:8] = %d, frame_counter[7:0] = %d\r\n"
-			xil_printf("CIS frame count: %d, DVS frame count:  %d\r\n", frm_cnt, dvs_frm_cnt);
 			xil_printf("DVS frame_error_count = %d\r\n", error_count);
+			xil_printf("CIS frame count: %d, DVS frame count:  %d\r\n", frm_cnt, dvs_frm_cnt);
+			//xil_printf("==DEBUG MESSAGE END==\r\n");
 		}
 
 
 #endif //( ENABLE_MAIN_DEBUG_OUTPUT )
 
+#if(AUTO_TEST_MODE)
+		usleep(AUTO_RESET_ITV_US);
+		dvs_reset=1;
 
-#if	(ENABLE_MENU )
+#elif(ENABLE_MENU)
 	XMipi_MenuProcess(&XmipiMenu);
 #endif
 
@@ -1220,22 +1423,24 @@ int main(void)
 #if(ENABLE_DVS_RESET==1)
 		if(dvs_reset==1)
 		{
-			sleep(1);
 
 			xil_printf(TXT_GREEN "\n\r DVS RESET TEST \n\r" TXT_RST);
 
+	#if(RESET_DMA_BEFORE_PROGRAM)
 			XTime_GetTime(&reset_timeout_start_t);
 			while(dvs_dma_reset()==XST_FAILURE){
 				XTime_GetTime(&reset_timeout_cur_t);
 				if(reset_timeout_cur_t-reset_timeout_start_t>COUNTS_PER_SECOND)
 				{
 					xil_printf(TXT_RED"\n\r+++++ERROR: DVS DMA Reset timeout+++++\n\r"TXT_RST);
-					while(1);
+					while(1){
+						xil_printf(TXT_RED"\n\r+++++ERROR: DVS DMA Reset timeout+++++\n\r"TXT_RST);
+						usleep(500000);
+					}
 				}
 			}
-			sleep(1);
 
-	#if(ENABLE_DVS_FILTER)
+		#if(ENABLE_DVS_FILTER)
 			XTime_GetTime(&reset_timeout_start_t);
 			while(g_FILTxRunning)
 			{
@@ -1258,16 +1463,12 @@ int main(void)
 					break;
 				}
 			}
-	#endif
-
-			sleep(1);
+		#endif // ENABLE_DVS_FILTER
+	#endif // RESET_DMA_BEFORE_PROGRAM
 
 			dvs_reset=0;
-
-			init_platform(); // Do nothing
-
-			while(setup_all()==XST_FAILURE);
-
+			//while(setup_all()==XST_FAILURE);
+			while(reset_dvs()==XST_FAILURE);
 		} // if dvs_reset
 
 #endif // ENABLE_DVS_RESET
@@ -1344,26 +1545,28 @@ int FilTxSetAndRun()
 
 	// 1. The starting address defines where the DMA transfer will begin.
 	//    This address must be aligned correctly based on the DMA's data requirements.
-	AXI4_READ_DMA_mWriteReg(XPAR_AXI4_READ_DMA_0_HWDMA_AXI_LITE_BASEADDR, AXI4_READ_DMA_HWDMA_AXI_LITE_SLV_REG1_OFFSET, (dvs_frame_array[g_dma_fil_rd_work_ptr%DVS_BUFFER_NUM]>>32) & 0xFFFFFFFF);
-	AXI4_READ_DMA_mWriteReg(XPAR_AXI4_READ_DMA_0_HWDMA_AXI_LITE_BASEADDR, AXI4_READ_DMA_HWDMA_AXI_LITE_SLV_REG2_OFFSET, dvs_frame_array[g_dma_fil_rd_work_ptr%DVS_BUFFER_NUM] & 0xFFFFFFFF );
+	u64 dvs_frame_addr = dvs_frame_array[g_dma_fil_rd_work_ptr%DVS_BUFFER_NUM] - DVS_FRAME_HEADER_BYTES_EXT; // 확장 헤더라면 확장된 부분까지 읽기
+	AXI4_READ_DMA_mWriteReg(XPAR_AXI4_READ_DMA_0_HWDMA_AXI_LITE_BASEADDR, AXI4_READ_DMA_HWDMA_AXI_LITE_SLV_REG1_OFFSET, (dvs_frame_addr>>32) & 0xFFFFFFFF);
+	AXI4_READ_DMA_mWriteReg(XPAR_AXI4_READ_DMA_0_HWDMA_AXI_LITE_BASEADDR, AXI4_READ_DMA_HWDMA_AXI_LITE_SLV_REG2_OFFSET, dvs_frame_addr & 0xFFFFFFFF );
 
 	// 2. The execution flag is used to trigger the DMA operation.
 	//    Once the starting address and other necessary parameters are set,
 	//   writing "1" to this flag initiates the DMA transfer process.
 	AXI4_READ_DMA_mWriteReg(XPAR_AXI4_READ_DMA_0_HWDMA_AXI_LITE_BASEADDR, AXI4_READ_DMA_HWDMA_AXI_LITE_SLV_REG0_OFFSET, 0x1);
 
+
 	//u64 dvs_header_addr = dvs_frame_array[g_dma_fil_rd_work_ptr%DVS_BUFFER_NUM];
 	//u64 dvs_header_addr2 = dvs_frame_array[(g_dma_fil_rd_work_ptr%DVS_BUFFER_NUM)+1];
 	//******************* dvs buf num  must be divisible by fil buf num ***********//
-	u64 dvs_header_addr = dvs_frame_array[(g_dma_fil_rd_work_ptr+2)%DVS_BUFFER_NUM];
-	u64 dvs_header_addr2 = dvs_frame_array[((g_dma_fil_rd_work_ptr+2)%DVS_BUFFER_NUM)+1];
+	u64 dvs_header_addr = dvs_frame_array[(g_dma_fil_rd_work_ptr+2)%DVS_BUFFER_NUM] - DVS_FRAME_HEADER_BYTES_EXT; // 확장 헤더라면 확장된 부분까지 읽기;
+	u64 dvs_header_addr2 = dvs_frame_array[((g_dma_fil_rd_work_ptr+2)%DVS_BUFFER_NUM)+1] - DVS_FRAME_HEADER_BYTES_EXT; // 확장 헤더라면 확장된 부분까지 읽기
 
 	u64 fil_header_addr = fil_frame_array[g_dma_fil_rd_work_ptr%FIL_BUFFER_NUM];
 	u64 fil_header_addr2 = fil_frame_array[(g_dma_fil_rd_work_ptr%FIL_BUFFER_NUM)+1];
 	//*****************************************************************************//
 
-	memcpy((void*)fil_header_addr,(void*)dvs_header_addr, 8 );
-	memcpy((void*)fil_header_addr2,(void*)dvs_header_addr2, 8 );
+	memcpy((void*)fil_header_addr,(void*)dvs_header_addr, DVS_FRAME_HEADER_SIZE_IN_BYTE );
+	memcpy((void*)fil_header_addr2,(void*)dvs_header_addr2, DVS_FRAME_HEADER_SIZE_IN_BYTE );
 	//Xil_Out64((UINTPTR)fil_header_addr, Xil_In64((UINTPTR)dvs_header_addr));
 	//Xil_Out64((UINTPTR)fil_header_addr2, Xil_In64((UINTPTR)dvs_header_addr2));
 

@@ -60,6 +60,8 @@ static XMipi_MenuType XMipi_ThreshMenu(XMipi_Menu *InstancePtr, u16 Input);
 static XMipi_MenuType XMipi_DVSResetMenu(XMipi_Menu *InstancePtr, u16 Input);
 #endif
 static XMipi_MenuType XMipi_ResetDebugMenu(XMipi_Menu *InstancePtr, u16 Input);
+static XMipi_MenuType XMipi_DVSReadRegMenu(XMipi_Menu *InstancePtr, u16 Input);
+//static XMipi_MenuType XMipi_DVSWriteRegMenu(XMipi_Menu *InstancePtr, u16 Input);
 
 static void XMipi_DisplayMainMenu(void);
 #if(ENABLE_DVS_FILTER)
@@ -67,10 +69,11 @@ static void XMipi_DisplayCurrentThreshold(void);
 static void XMipi_DisplayThresholdMenu(u16 option);
 #endif
 #if(ENABLE_DVS_RESET)
-static void XMipi_DisplayDVSResetMenu();
+static void XMipi_DisplayDVSResetMenu(void);
 #endif
 static void XMipi_DisplayResetDebugMenu(void);
-
+static void XMipi_DisplayDVSReadRegMenu(void);
+//static void XMipi_DisplayDVSWriteRegMenu(void);
 /************************* Variable Definitions *****************************/
 
 extern XVprocSs scaler_new_inst;
@@ -122,7 +125,9 @@ static XMipi_MenuFuncType* const XMipi_MenuTable[XMIPI_NUM_MENUS] = {
 #if(ENABLE_DVS_RESET)
 				XMipi_DVSResetMenu,
 #endif
-				XMipi_ResetDebugMenu
+				XMipi_ResetDebugMenu,
+				XMipi_DVSReadRegMenu
+				//XMipi_DVSWriteRegMenu
 			};
 
 extern u8 IsPassThrough; /**< Demo mode 0-colorbar 1-pass through */
@@ -132,6 +137,79 @@ extern u8 TxBusy;  /* TX busy flag is set while the TX is initialized */
 
 extern void Reset_IP_Pipe(void);
 extern void CamReset(void);
+
+
+/* ========= HEX4 input utilities (non-blocking) ========= */
+static inline int hex_nibble(char c){
+    if (c>='0' && c<='9') return c - '0';
+    if (c>='a' && c<='f') return c - 'a' + 10;
+    if (c>='A' && c<='F') return c - 'A' + 10;
+    return -1;
+}
+
+// DVS Read Reg 메뉴 전용 상태
+static struct {
+    u8  active;      // 1=입력 중
+    u8  len;         // 0..4
+    char buf[4];     // 입력 버퍼
+} s_hex4 = {0, 0, {0}};
+
+// 시작/리셋
+static inline void Hex4_BeginPrompt(void){
+    s_hex4.active = 1;
+    s_hex4.len = 0;
+    xil_printf("Enter a 4-digit hex address (e.g., 3218). To exit, enter 0000. Then press Enter\n\r>> ");
+}
+
+// 1바이트 처리: 0=진행, 1=완료(out_addr 유효)
+static int Hex4_OnByte(u32 UartBaseAddress, u8 ch, u16 *out_addr){
+    if (!s_hex4.active) return 0;
+
+    // Enter
+    if (ch=='\r' || ch=='\n'){
+        xil_printf("\r\n");
+        if (s_hex4.len == 4){
+            u16 v = 0;
+            for (int i=0;i<4;i++){
+                v = (u16)((v<<4) | hex_nibble(s_hex4.buf[i]));
+            }
+            *out_addr = v;
+            s_hex4.active = 0;
+            return 1; // 완료
+        }
+        xil_printf("Please enter exactly 4 hex digits.\r\n");
+        Hex4_BeginPrompt();
+        return 0;
+    }
+
+    // Backspace
+    if (ch==8 || ch==127){
+        if (s_hex4.len > 0){
+            s_hex4.len--;
+            xil_printf("\b \b");
+        }
+        return 0;
+    }
+
+    // 공백류 무시
+    if (ch==' ' || ch=='\t'){
+        return 0;
+    }
+
+    // 유효한 hex면 누적(4자 초과는 무시)
+    if (hex_nibble((char)ch) >= 0){
+        if (s_hex4.len < 4){
+            s_hex4.buf[s_hex4.len++] = (char)ch;
+            XUartPs_SendByte(UartBaseAddress, ch);
+        }
+        // 4자 채워도 Enter로 확정 (실수 방지)
+        return 0;
+    }
+
+    // 그 외 문자는 무시
+    return 0;
+}
+
 
 /*****************************************************************************/
 /**
@@ -202,6 +280,8 @@ void XMipi_DisplayMainMenu(void) {
 	xil_printf("q - Reset system. \n\r");
 #endif
 	xil_printf("r - Reset Debug Counters. \n\r");
+	xil_printf("d - Read DVS Register. \n\r");
+	xil_printf("w - Write DVS Register. \n\r");
 	xil_printf("\n\r\n\r");
 	xil_printf(TXT_RST);
 }
@@ -263,6 +343,20 @@ static XMipi_MenuType XMipi_MainMenu(XMipi_Menu *InstancePtr, u16 Input) {
 			is_user_input_active = 1;
 			XMipi_DisplayResetDebugMenu();
 			break;
+		case ('d'):
+		case ('D'):
+			Menu = XMIPI_DVS_READ_REG_MENU;
+			is_user_input_active = 1;
+			XMipi_DisplayDVSReadRegMenu();
+			Hex4_BeginPrompt();
+			break;
+		/*case ('w'):
+		case ('W'):
+			Menu = XMIPI_DVS_READ_REG_MENU;
+			is_user_input_active = 1;
+			XMipi_DisplayDVSWriteRegMenu();
+			Hex4_BeginPrompt();
+			break;*/
 		default:
 			XMipi_DisplayMainMenu();
 			Menu = XMIPI_MAIN_MENU;
@@ -559,6 +653,77 @@ static XMipi_MenuType XMipi_ResetDebugMenu(XMipi_Menu *InstancePtr, u16 Input) {
 	}
 	return Menu;
 }
+
+
+void XMipi_DisplayDVSReadRegMenu(void)
+{
+    xil_printf("\r\n");
+    xil_printf(TXT_CYAN);
+    xil_printf("---------------------------\r\n");
+    xil_printf("---  READ DVS REG MENU  ---\r\n");
+    xil_printf("Enter 4-hex address (e.g., 3218), or 0000 to exit -> ");
+    xil_printf("---------------------------\r\n");
+    xil_printf(TXT_RST);
+}
+
+static XMipi_MenuType XMipi_DVSReadRegMenu(XMipi_Menu *InstancePtr, u16 Input)
+{
+    XMipi_MenuType Menu = XMIPI_DVS_READ_REG_MENU;
+
+    if (Input == 0 && !s_hex4.active){
+        xil_printf("\n\rCancelled. Returning to main menu.\n\r");
+        is_user_input_active = 0;
+        XMipi_DisplayMainMenu();
+        return XMIPI_MAIN_MENU;
+    }
+
+    // Input은 0x0001~0xFFFF의 16-bit 주소
+    {
+        u16 addr = Input;
+
+        xil_printf("Parsed address: 0x%04X\r\n", addr);
+        DVSReadReg(addr);
+
+        Hex4_BeginPrompt();
+        return XMIPI_DVS_READ_REG_MENU;
+    }
+}
+
+
+/*void XMipi_DisplayDVSWriteRegMenu(void)
+{
+    xil_printf("\r\n");
+    xil_printf(TXT_CYAN);
+    xil_printf("---------------------------\r\n");
+    xil_printf("--- WRITE DVS REG MENU  ---\r\n");
+    xil_printf("Enter 6-hex address(4h) & data(2h) (e.g., 32180C), or 000000 to exit -> ");
+    xil_printf("---------------------------\r\n");
+    xil_printf(TXT_RST);
+}
+
+static XMipi_MenuType XMipi_DVSWriteRegMenu(XMipi_Menu *InstancePtr, u16 Input)
+{
+    XMipi_MenuType Menu = XMIPI_DVS_WRITE_REG_MENU;
+
+    if (Input == 0 && !s_hex4.active){
+        xil_printf("\n\rCancelled. Returning to main menu.\n\r");
+        is_user_input_active = 0;
+        XMipi_DisplayMainMenu();
+        return XMIPI_MAIN_MENU;
+    }
+
+    // Input은 0x0001~0xFFFF의 16-bit 주소
+    {
+        u16 addr = Input;
+
+        xil_printf("Parsed address: 0x%04X\r\n", addr);
+        // DVSReadReg(addr);
+
+        Hex4_BeginPrompt();
+        return XMIPI_DVS_WRITE_REG_MENU;
+    }
+}*/
+
 /*****************************************************************************/
 /**
  *
@@ -572,57 +737,61 @@ static XMipi_MenuType XMipi_ResetDebugMenu(XMipi_Menu *InstancePtr, u16 Input) {
  *
  ******************************************************************************/
 void XMipi_MenuProcess(XMipi_Menu *InstancePtr) {
-	u8 Data;
+    u8 Data;
 
-	/* Verify argument. */
-	Xil_AssertVoid(InstancePtr != NULL);
+    Xil_AssertVoid(InstancePtr != NULL);
 
+    if (XUartPs_IsReceiveData(InstancePtr->UartBaseAddress)) {
+        Data = XUartPs_RecvByte(InstancePtr->UartBaseAddress);
 
+        if (InstancePtr->CurrentMenu == XMIPI_MAIN_MENU) {
+            InstancePtr->CurrentMenu =
+                XMipi_MenuTable[InstancePtr->CurrentMenu](InstancePtr, Data);
+            InstancePtr->Value = 0;
+        } else {
 
-	/* Check if the uart has any data */
-	if (XUartPs_IsReceiveData(InstancePtr->UartBaseAddress)) {
+            /* ===== 4-hex 입력 모드 우선 처리 (DVS RW Reg 메뉴 한정) ===== */
+            /*if ((InstancePtr->CurrentMenu == XMIPI_DVS_WRITE_REG_MENU || InstancePtr->CurrentMenu == XMIPI_DVS_READ_REG_MENU)
+            		&& s_hex4.active)*/
+        	if (InstancePtr->CurrentMenu == XMIPI_DVS_READ_REG_MENU && s_hex4.active)
+            {
+                u16 addr = 0;
+                int done = Hex4_OnByte(InstancePtr->UartBaseAddress, Data, &addr);
+                if (done == 1) {
+                    /* 완료: addr을 Value로 넘겨 현재 메뉴 핸들러 호출 */
+                    InstancePtr->Value = (u16)addr;
+                    InstancePtr->CurrentMenu =
+                        XMipi_MenuTable[InstancePtr->CurrentMenu](InstancePtr, InstancePtr->Value);
+                    InstancePtr->Value = 0;
+                }
+                return;
+            }
 
-		/* Read data from uart */
-		Data = XUartPs_RecvByte(InstancePtr->UartBaseAddress);
+             /* ===== 에코 & 숫자/알파 처리 ===== */
+            XUartPs_SendByte(InstancePtr->UartBaseAddress, Data);
 
-		/* Main menu */
-		if (InstancePtr->CurrentMenu == XMIPI_MAIN_MENU) {
-			InstancePtr->CurrentMenu =
-				XMipi_MenuTable[InstancePtr->CurrentMenu](InstancePtr, Data);
-			InstancePtr->Value = 0;
-		}
-
-		/* Sub menu */
-		else {
-
-			/* Send response to user */
-			XUartPs_SendByte(InstancePtr->UartBaseAddress, Data);
-
-			/* Alpha numeric data */
-			if (isalpha(Data)) {
-xil_printf(TXT_RED "\r\nInvalid input."TXT_RST);
-xil_printf(TXT_RED "Valid entry is only digits 0-9. \r\n\r\n"TXT_RST);
-xil_printf(TXT_RED " Try again\r\n\r\n"TXT_RST);
-xil_printf(TXT_CYAN "Enter Selection -> " TXT_RST);
-				InstancePtr->Value = 0;
-			}
-
-			/* Numeric data */
-			else if ((Data >= '0') && (Data <= '9')) {
-				InstancePtr->Value = InstancePtr->Value * 10 + (Data - '0');
-			}
-
-			/* Backspace */
-			else if (Data == '\b') {
-				InstancePtr->Value = InstancePtr->Value / 10; /*discard previous input */
-			}
-
-			/* Execute */
-			else if ((Data == '\n') || (Data == '\r')) {
-				InstancePtr->CurrentMenu =
-					XMipi_MenuTable[InstancePtr->CurrentMenu](InstancePtr, InstancePtr->Value);
-				InstancePtr->Value = 0;
-			}
-		}
-	}
+            if (isalpha(Data)) {
+                xil_printf(TXT_RED "\r\nInvalid input."TXT_RST);
+                xil_printf(TXT_RED "Valid entry is only digits 0-9. \r\n\r\n"TXT_RST);
+                xil_printf(TXT_RED " Try again\r\n\r\n"TXT_RST);
+                xil_printf(TXT_CYAN "Enter Selection -> " TXT_RST);
+                InstancePtr->Value = 0;
+            }
+            else if ((Data >= '0') && (Data <= '9')) {
+                InstancePtr->Value = InstancePtr->Value * 10 + (Data - '0');
+            }
+            else if (Data == '\b') {
+                InstancePtr->Value = InstancePtr->Value / 10;
+            }
+            else if ((Data == '\n') || (Data == '\r')) {
+                InstancePtr->CurrentMenu =
+                    XMipi_MenuTable[InstancePtr->CurrentMenu](InstancePtr, InstancePtr->Value);
+                InstancePtr->Value = 0;
+            }
+        }
+    }
 }
+
+
+
+

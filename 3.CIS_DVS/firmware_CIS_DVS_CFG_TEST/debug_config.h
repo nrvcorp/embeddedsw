@@ -7,15 +7,24 @@
  */
 
 
+#define USE_EXTENDED_DVS_FRAME_HEADER 1
+
 #define ENABLE_DVS_FILTER 1
 
 #define ENABLE_DVS_RESET 1
 
 #define ENABLE_HOST_DIRECT_DVS_ACCESS 1
 
+// Periodically resets the DVS to a new configuration based on predefined rules.
+// skipping/ignoring all user input (fully unattended mode).
+#define AUTO_TEST_MODE 0
+#define AUTO_RESET_ITV_US 4000000
+
+#define RESET_DMA_BEFORE_PROGRAM 0 // reset dmas, clear buffers, reset ptrs
 
 #define ENABLE_MENU 1
 
+#define ENABLE_CIS 1 // TODO
 
 #define ENABLE_MAIN_DEBUG_OUTPUT 1
 #define MAIN_DEBUG_OUTPUT_INTERVAL_SEC 1 //  >= 1
@@ -31,7 +40,7 @@
 
 #define CHECK_DVS_FRAME_DROP 1
 #define CHECK_DVS_MULTIPLE_FRAME_DROP 1
-#define DVS_FRAME_DROP_LOG_IMMEDIATE 1
+#define DVS_FRAME_DROP_LOG_IMMEDIATE 0
 //#define CHECK_DVS_FRAME_DROP_LOW_EVENT 1 //
 
 #define CHECK_FIL_EVENT_COUNT 1  //  sub-option of ENABLE_DVS_FILTER

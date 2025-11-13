@@ -35,6 +35,8 @@
 // 2000fps
 struct regval_list DVS_regs[] = {
 	{0x3225, 0x12},
+
+
 	{0x0166, 0x31},
 	{0x300c, 0x00}, // STREAM_OUT_MODE_r(0 : MIPI, 1 : PARALLEL)
 	{0x30a1, 0x00}, // [0] : OUTIF_PARA_ENABLE
@@ -99,7 +101,7 @@ struct regval_list DVS_regs[] = {
 	{0x321A, 0x07}, // DTAG_APS_RST_r
 	{0x321C, 0x04}, // DTAG_COL_MARGIN_r
 
-	{0x320C, 0x1F}, // [6] : DTAG_FREE_RUN_MODE_r, [5] : DTAG_MASK_FIRST_FRAME_r, [1] : DTAG_GRST_MODE_r, [0] : DTAG_GH_MODE_r
+	//{0x320C, 0x1F}, // [6] : DTAG_FREE_RUN_MODE_r, [5] : DTAG_MASK_FIRST_FRAME_r, [1] : DTAG_GRST_MODE_r, [0] : DTAG_GH_MODE_r
 	{0x320C, 0x5D},
 	{0x321D, 0x00}, // DTAG_FRM_MAGRIN_r_MSB
 	{0x321E, 0x03}, // DTAG_FRM_MAGRIN_r_LSB : 1LSB x 2^12 x Event Clock period
@@ -172,7 +174,17 @@ struct regval_list DVS_regs[] = {
 };
 
 struct regval_list DVS_regs_1958fps[] = {
-		{0x3225, 0x12},
+		{0x3225, 0x12}, // DTAG_GR_ON_NUM_r (high): reset value == 0x00
+		{0x3226, 0x01}, // DTAG_GR_ON_NUM_r (low): reset value == 0x01
+		{0x3227, 0x00}, // DTAG_GR_OFF_NUM_r (high): reset value == 0x00
+	    {0x3228, 0x00}, // DTAG_GR_OFF_NUM_r (low): reset value == 0x00
+
+		// GR ON/OFF NUM에 대해:
+		// 1. ON NUM 만큼의 프레임동안 글로벌리셋이 켜지고, 다음 OFF NUM 만큼의 프레임동안 꺼짐
+		// 2. 만약 이 레지스터들의 값을 수정한 경우 이미 설정된 ON NUM 또는 OFF NUM 프레임이 완전히 끝난 뒤 새로운 설정값 적용 시작
+		// ex) ON Num = 65535 Off Num = 0 설정 적용 직후 On Num = 0, Off Num = 65535  설정한 경우,
+		// GR On 프레임 65535개가 완전히 끝난 뒤  GR Off 프레임이 출력되기 시작함
+
 
 		{0x0166, 0x31},
 		{0x300c, 0x00}, // STREAM_OUT_MODE_r(0 : MIPI, 1 : PARALLEL)
@@ -234,7 +246,9 @@ struct regval_list DVS_regs_1958fps[] = {
 		{0x3210, 0x1E}, // DTAG_GH_SET_r
 		{0x3211, 0x00}, // DTAG_GL_SET_r
 		{0x3212, 0x07}, // DTAG_GR_r
-		{0x3213, 0x1D}, // DTAG_GL_HLD_r
+		{0x3213, 0x1D}, // DTAG_GL_HLD_r    // 기본 1D 보다 값이 작으면 320C=5F 에서 손가락이 잘 보일 것
+		// 1D 18 0F 08 04 02 01 00
+
 		{0x3214, 0x00}, // DTAG_DELAY_r(1)
 		{0x3215, 0x00}, // DTAG_DELAY_r(2)
 
@@ -244,6 +258,26 @@ struct regval_list DVS_regs_1958fps[] = {
 		{0x3219, 0x05}, // DTAG_AY_RST_GAP_r
 		{0x321A, 0x07}, // DTAG_APS_RST_r
 		{0x321C, 0x02}, // DTAG_COL_MARGIN_r
+
+		// 문제상황:
+		// 320C = 5F 세팅을 프로그램 할 때마다 손가락이 잘찍히기도 하고 안찍히기도 함
+
+		// 가설
+		// 프리런 모드와 글로벌 리셋이 함께 켜진 경우가 문제일 것
+		// (1) (2) (3) 기간 안에 스캔이 끝나버리면 노광시간이 짧아지고, 노광시간이 짧으면 이벤트가 적어지고 스캔이 빨리 끝나고 악순환 반복
+
+		// 관측 결과
+		// 프리런을 끈 1F 설정으로도 여전히 같은 문제가 발생함
+		// 5F에서 플리커링 조명으로 짧은 노광 시간 안에 최대한 스캔거리를 많이 만들어서 노광 시간을 다시 늘려도(?) 손이 다 찍히지 않음
+
+		// 5F에서 센서를 막아서 이벤트를 줄이면 frame skip이 발생하면서 fps가 2800에서 서서히 더 줄어듬 (관측된 최저 프레임 2500fps)
+		// (frame skip 알림 출력을 키면 메시지 출력 비용으로 악순환이 생겨 1000fps 밑으로 계속 떨어짐)
+
+		//      문제상황: 호스트의 display 윈도우를 1)백그라운드로 돌리거나, 2)화면 밖으로 내려서 일부만 보이게 만들거나, 3)윈도우를 잡고 흔들면
+		//			  프레임 스킵이 사라지고 다시 fps가 2800으로 복구됨
+
+		//      하지만 frame skip은 호스트와 무관하게 펌웨어측에서 dvs stream의 헤더를 읽어서 감지함
+		//      호스트에서 읽어온 데이터를 화면에 렌더링 하는 것과 센서의 frame skip이 무슨 관계인가?
 
 		{0x320C, 0x1F}, // [6] : DTAG_FREE_RUN_MODE_r, [5] : DTAG_MASK_FIRST_FRAME_r, [1] : DTAG_GRST_MODE_r, [0] : DTAG_GH_MODE_r
 		//{0x320C, 0x5D},
@@ -273,8 +307,8 @@ struct regval_list DVS_regs_1958fps[] = {
 		{0x32B4, 0xE7}, // TSTAMP_REF_UNIT_VAL_r_LSB
 		{0x311f, 0x00},
 		{0x3040, 0x01},
-		{0x4308, 0x01},
-		{0x4300, 0x01},
+		{0x4308, 0x01}, //
+		{0x4300, 0x01}, //
 		{0x4900, 0x01},
 
 		//////////////////////////////////////////////////////////////////
@@ -319,7 +353,10 @@ struct regval_list DVS_regs_1958fps[] = {
 		{0x0100, 0x01}
 	};
 struct regval_list DVS_regs_3287fps[] = {
-		{0x3225, 0x12},
+		{0x3225, 0x12}, // DTAG_GR_ON_NUM_r (high): reset value == 0x00
+		{0x3226, 0x01}, // DTAG_GR_ON_NUM_r (low): reset value == 0x01
+		{0x3227, 0x00}, // DTAG_GR_OFF_NUM_r (high): reset value == 0x00
+	    {0x3228, 0x00}, // DTAG_GR_OFF_NUM_r (low): reset value == 0x00
 
 		{0x0166, 0x31},
 		{0x300c, 0x00}, // STREAM_OUT_MODE_r(0 : MIPI, 1 : PARALLEL)
@@ -387,8 +424,7 @@ struct regval_list DVS_regs_3287fps[] = {
 
 		{0x3216, 0x02}, // DTAG_SELX_r
 		{0x3217, 0x01}, // DTAG_SENSE_r
-		//{0x3218, 0x00}, // DTAG_AY_r
-		{0x3218, 0x08}, // DTAG_AY_r
+		{0x3218, 0x00}, // DTAG_AY_r
 		{0x3219, 0x00}, // DTAG_AY_RST_GAP_r
 		{0x321A, 0x00}, // DTAG_APS_RST_r
 		{0x321C, 0x02}, // DTAG_COL_MARGIN_r

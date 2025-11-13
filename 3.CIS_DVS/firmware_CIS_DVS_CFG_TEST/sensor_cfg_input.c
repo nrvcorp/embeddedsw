@@ -5,7 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdint.h>
-
+#include <stdlib.h>
 /* ===== Local helpers / fallbacks ===== */
 #ifndef ARRAY_LEN
 #define ARRAY_LEN(a) (sizeof(a)/sizeof((a)[0]))
@@ -108,12 +108,12 @@ static const reg_meta kRegDB[] = {
 			"memo: 0x00",
 			0xFF, 0xFF,
 			{{0}}, 0},
-	{0x3211, "DTAG_GR_r",
+	{0x3212, "DTAG_GR_r",
 			""
 			"memo: 0x07",
 			0xFF, 0xFF,
 			{{0}}, 0},
-	{0x3211, "DTAG_GL_HLD_r",
+	{0x3213, "DTAG_GL_HLD_r",
 			""
 			"memo: 0x1D",
 			0xFF, 0xFF,
@@ -296,45 +296,54 @@ static int delete_by_index(regval_list *arr, size_t *len, size_t idx) {
     return 1;
 }
 
-/* ===== Merge with forced tail ordering =====================================
+/* ===== Merge with unknowns-first and forced tail ordering ===================
  * Rules:
  *  1) Start from defaults order; apply overrides IN PLACE where address exists.
- *  2) Unknown override addresses are APPENDED after defaults.
+ *  2) Unknown override addresses (not in defaults) are placed at the FRONT
+ *     (before defaults), preserving input order and uniqueness (last-wins).
  *  3) Any address listed in kAlwaysLastRegs[] is MOVED to the very END,
- *     in the exact order of kAlwaysLastRegs[], regardless of whether it
- *     came from defaults or from overrides.
+ *     in the exact order of kAlwaysLastRegs[], preferring override over default.
+ *
+ * Final layout:
+ *   [unknown non-tail overrides] + [defaults (with in-place overrides, tails removed)]
+ *   + [tails in kAlwaysLastRegs order]
+ *
  * Final length = defaults_len + (# of unknown overrides).
+ * If out_cap is insufficient, items are emitted in deterministic priority:
+ *   unknown non-tail → defaults(no tails) → tails (forced order).
  */
-static int build_regset_tail_ordered(const regval_list *def, size_t def_len,
-                                     const regval_list *ovr, size_t ovr_len,
-                                     regval_list *out, size_t out_cap, size_t *out_len)
+static int build_regset_unknowns_first_tail_ordered(const regval_list *def, size_t def_len,
+                                                    const regval_list *ovr, size_t ovr_len,
+                                                    regval_list *out, size_t out_cap, size_t *out_len)
 {
-    /* We'll use 'out' as a working buffer, then compact & append. */
+    if (out_len) *out_len = 0;
+    if (!out || out_cap == 0) return SENSOR_CFG_ERR_CAP;
+
+    /* 0) copy defaults into out as a working buffer */
     if (out_cap < def_len) {
-        /* Not enough for even defaults; truncate and report. */
-        memcpy(out, def, (out_cap) * sizeof(regval_list));
-        *out_len = out_cap;
+        memcpy(out, def, out_cap * sizeof(regval_list));
+        if (out_len) *out_len = out_cap;
         return SENSOR_CFG_ERR_CAP;
     }
     memcpy(out, def, def_len * sizeof(regval_list));
     size_t n_def_work = def_len;
 
-    /* Build list of unknown overrides to append later; keep unique. */
+    /* collect unknown overrides (unique; last-wins) */
     regval_list extra[SENSOR_CFG_MAX_OVERRIDES];
     size_t extra_len = 0;
 
-    /* Step 1: apply overrides in place if present in defaults; else add to 'extra'. */
+    /* 1) in-place override for addresses present in defaults; collect unknowns */
     for (size_t i = 0; i < ovr_len; ++i) {
         int idx = find_addr_index(out, n_def_work, ovr[i].Address);
         if (idx >= 0) {
-            out[idx].Data = ovr[i].Data;
+            out[idx].Data = ovr[i].Data; /* update default in place */
         } else {
-            /* upsert into extra[] to stay unique */
             int eidx = find_addr_index(extra, extra_len, ovr[i].Address);
-            if (eidx >= 0) extra[eidx].Data = ovr[i].Data;
-            else {
+            if (eidx >= 0) {
+                extra[eidx].Data = ovr[i].Data; /* last-wins */
+            } else {
                 if (extra_len >= ARRAY_LEN(extra)) {
-                    *out_len = n_def_work; /* safe to report how far we got */
+                    if (out_len) *out_len = n_def_work;
                     return SENSOR_CFG_ERR_CAP;
                 }
                 extra[extra_len++] = ovr[i];
@@ -342,7 +351,7 @@ static int build_regset_tail_ordered(const regval_list *def, size_t def_len,
         }
     }
 
-    /* Step 2: strip ALL tail addresses from defaults-working array into a small buffer. */
+    /* 2) remove all tail addresses from defaults working array */
     regval_list tail_from_defaults[ARRAY_LEN(kAlwaysLastRegs)];
     size_t tail_def_len = 0;
 
@@ -351,15 +360,14 @@ static int build_regset_tail_ordered(const regval_list *def, size_t def_len,
         if (is_tail_addr(out[i].Address)) {
             if (tail_def_len < ARRAY_LEN(tail_from_defaults))
                 tail_from_defaults[tail_def_len++] = out[i];
-            /* else: if tail list duplicated in defaults unexpectedly, just drop extras */
         } else {
             if (w != i) out[w] = out[i];
             ++w;
         }
     }
-    n_def_work = w; /* now 'out[0..w)' contains defaults without any tail addresses */
+    n_def_work = w; /* out[0..w) now holds defaults without tails (with in-place overrides) */
 
-    /* Step 3: split extra[] into non-tail and tail buckets. */
+    /* 3) split unknown overrides into non-tail and tail buckets */
     regval_list extra_nontail[SENSOR_CFG_MAX_OVERRIDES];
     size_t extra_nontail_len = 0;
     regval_list extra_tail[SENSOR_CFG_MAX_OVERRIDES];
@@ -373,67 +381,52 @@ static int build_regset_tail_ordered(const regval_list *def, size_t def_len,
         }
     }
 
-    /* Step 4: capacity check for final size:
-       final_len = n_def_work + tail_def_len + extra_nontail_len + unique(extra_tail vs tail_def)
-                 = def_len + extra_len  (since we removed then re-add tail from defaults, and extra_tail add only unknown tails)
-    */
-    size_t final_needed = def_len + extra_len;
+    /* 4) capacity check and emission in priority order */
+    const size_t final_needed = def_len + extra_len; /* defaults + unknowns */
+    size_t k = 0;
+
     if (final_needed > out_cap) {
-        /* We can still fill up to out_cap items deterministically. */
-        /* Copy back non-tail defaults (already in out[0..n_def_work)) — done. */
-        /* Append as much extra_nontail as fits, then forced tail order until capacity. */
-        size_t k = n_def_work;
-
-        /* Append non-tail extras */
-        for (size_t i = 0; i < extra_nontail_len && k < out_cap; ++i) {
+        /* a) unknown non-tail first */
+        for (size_t i = 0; i < extra_nontail_len && k < out_cap; ++i)
             out[k++] = extra_nontail[i];
-        }
 
-        /* Build helper: look up value to place for each tail address (ovr > def). */
+        /* b) defaults without tails (with in-place overrides) */
+        for (size_t i = 0; i < n_def_work && k < out_cap; ++i)
+            out[k++] = out[i];
+
+        /* c) tails in forced order: prefer extra-tail over default-tail */
         for (size_t t = 0; t < ARRAY_LEN(kAlwaysLastRegs) && k < out_cap; ++t) {
             uint16_t addr = kAlwaysLastRegs[t];
-            /* prefer extra override if present */
             int eidx = find_addr_index(extra_tail, extra_tail_len, addr);
             if (eidx >= 0) { out[k++] = extra_tail[eidx]; continue; }
-            /* else use updated default tail if it existed */
             int didx = find_addr_index(tail_from_defaults, tail_def_len, addr);
             if (didx >= 0) { out[k++] = tail_from_defaults[didx]; continue; }
-            /* else: tail addr not present anywhere -> skip */
         }
 
-        *out_len = k;
+        if (out_len) *out_len = k;
         return SENSOR_CFG_ERR_CAP;
     }
 
-    /* Step 5: build final array:
-       - out[0..n_def_work): defaults without tails (already placed)
-       - append all non-tail extras
-       - append forced tail addresses in kAlwaysLastRegs order
-    */
-    size_t k = n_def_work;
-
-    /* Append non-tail extras */
-    for (size_t i = 0; i < extra_nontail_len; ++i) {
+    /* 5) normal case: assemble final sequence
+       [extra_nontail] + [defaults_without_tails] + [tails forced order] */
+    /* a) unknown non-tail first */
+    for (size_t i = 0; i < extra_nontail_len; ++i)
         out[k++] = extra_nontail[i];
-    }
 
-    /* Append tails in forced order; prefer extra-tail (override) over default-tail. */
+    /* b) defaults without tails */
+    for (size_t i = 0; i < n_def_work; ++i)
+        out[k++] = out[i];
+
+    /* c) tails forced order (override > default) */
     for (size_t t = 0; t < ARRAY_LEN(kAlwaysLastRegs); ++t) {
         uint16_t addr = kAlwaysLastRegs[t];
         int eidx = find_addr_index(extra_tail, extra_tail_len, addr);
-        if (eidx >= 0) {
-            out[k++] = extra_tail[eidx];
-            continue;
-        }
+        if (eidx >= 0) { out[k++] = extra_tail[eidx]; continue; }
         int didx = find_addr_index(tail_from_defaults, tail_def_len, addr);
-        if (didx >= 0) {
-            out[k++] = tail_from_defaults[didx];
-            continue;
-        }
-        /* else: nothing to place for this tail addr -> skip */
+        if (didx >= 0) { out[k++] = tail_from_defaults[didx]; continue; }
     }
 
-    *out_len = k;
+    if (out_len) *out_len = k;
     return SENSOR_CFG_OK;
 }
 
@@ -638,6 +631,7 @@ static void print_help(void) {
         "  help            : Show this help\r\n"
         "\r\n"
         "Tail order: specific registers are always executed last, in code-defined order.\r\n"
+    	"In final programming order: addresses not in defaults are placed at the FRONT.\r\n"
         "Pair formats (delimiters : , = space; 0x prefix allowed):\r\n"
         "  3225:12 0166=31 0ABC 07, 1234:FF\r\n"
         "Address = 4 hex digits; Value = 2 hex digits.\r\n"
@@ -851,9 +845,9 @@ int sensor_cfg_input(const regval_list *defaults, size_t defaults_len,
         if (ci_starts_with(p, "return") || ci_starts_with(p, "done") || ci_starts_with(p, "ok")) {
             /* Build and return merged configuration — defaults in-place, append unknown, force tail last */
             size_t merged_len = 0;
-            int rc = build_regset_tail_ordered(active_def, active_def_len,
-                                               overrides, overrides_len,
-                                               out, out_cap, &merged_len);
+            int rc = build_regset_unknowns_first_tail_ordered(active_def, active_def_len,
+                                                              overrides, overrides_len,
+                                                              out, out_cap, &merged_len);
             *out_len = merged_len;
             if (rc == SENSOR_CFG_OK) {
                 xil_printf("Merged %d item(s) with tail-ordered execution on BASE '%s'. Returning sensor_cfg.\r\n",
@@ -903,12 +897,16 @@ int sensor_cfg_input(const regval_list *defaults, size_t defaults_len,
                 continue;
             }
 
-            /* Optional hints: where will unknowns land? */
+            /* (final programming order):
+             * - Addresses not in defaults are placed at the FRONT.
+             * - Tail addresses in kAlwaysLastRegs[] are still forced to the very END.
+             */
             for (size_t i = 0; i < tmp_len; ++i) {
                 int in_def = (find_addr_index(active_def, active_def_len, tmp[i].Address) >= 0);
                 if (!in_def) {
-                    xil_printf("NOTE: 0x%04X not in defaults; will be appended%s.\r\n",
-                               tmp[i].Address, is_tail_addr(tmp[i].Address) ? " at the very end (tail)" : "");
+                	xil_printf("NOTE: 0x%04X not in defaults; will be placed at the FRONT in final order%s.\r\n",
+                	           tmp[i].Address,
+                	           is_tail_addr(tmp[i].Address) ? " (tail: forced to the very end)" : "");
                 }
             }
 
@@ -1034,1045 +1032,3 @@ int sensor_cfg_input(const regval_list *defaults, size_t defaults_len,
         xil_printf("Unknown input. Type 'help' for usage.\r\n");
     }
 }
-
-
-
-#ifdef legacy_250925
-
-#include "sensor_cfg_input.h"
-#include "xuartps_hw.h"
-#include "xil_printf.h"
-#include <string.h>
-#include <ctype.h>
-
-/* ====== Small helpers / macros ====== */
-#ifndef ARRAY_LEN
-#define ARRAY_LEN(a) (sizeof(a)/sizeof((a)[0]))
-#endif
-
-static inline int is_hex_char(char c) {
-    return (c >= '0' && c <= '9') ||
-           (c >= 'a' && c <= 'f') ||
-           (c >= 'A' && c <= 'F');
-}
-static inline int hex_nibble(char c) {
-    if (c >= '0' && c <= '9') return c - '0';
-    if (c >= 'a' && c <= 'f') return 10 + (c - 'a');
-    if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
-    return -1;
-}
-static int ci_starts_with(const char *s, const char *pfx) {
-    while (*pfx) {
-        char a = *s ? (char)tolower((unsigned char)*s) : 0;
-        char b = (char)tolower((unsigned char)*pfx);
-        if (a != b) return 0;
-        ++s; ++pfx;
-    }
-    return 1;
-}
-
-/* ---- Last-used configuration cache (RAM only) ------------------------- */
-static regval_list g_last_cfg[SENSOR_CFG_WORKBUF_CAP];
-static size_t      g_last_cfg_len = 0;
-/* Keep last overrides too so user can reload for editing */
-static regval_list g_last_overrides[SENSOR_CFG_MAX_OVERRIDES];
-static size_t      g_last_overrides_len = 0;
-
-/* ===== Register metadata ===== */
-typedef struct reg_meta {
-    uint16_t addr;
-    const char *name;    /* short name */
-    const char *brief;   /* what this register does */
-    const char *notes;   /* access/reset/range or any extra notes */
-    // TODO: default cfg values, experiment logs
-} reg_meta;
-
-static const reg_meta kRegDB[] = {
-    /* examples
-    {0x3225, "FRAME_CTRL", "Frame timing/control",          "Reset: 0x12, RW"},
-    {0x0166, "GAIN_MODE",  "Analog/digital gain selection", "Reset: 0x31, RW"},
-    {0x0ABC, "XXX", "desc", "notes"}, ... */
-
-    {0x320C, "DTAG_GRST_MODE_r",
-            "[6] : DTAG_FREE_RUN_MODE_r, [5] : DTAG_MASK_FIRST_FRAME_r, [1] : DTAG_GRST_MODE_r, [0] : DTAG_GH_MODE_r",
-            "memo: 0x5D"},
-
-    {0x3216, "DTAG_SELX_r",
-            "",
-            "memo: 0x02"},
-    {0x3217, "DTAG_SENSE_r",
-            "",
-            "memo: 0x01"},
-    {0x3218, "DTAG_AY_r",
-            "",
-            "memo: 0x00"},
-    {0x3219, "DTAG_AY_RST_GAP_r",
-            "",
-            "memo: 0x00"},
-    {0x321A, "DTAG_APS_RST_r",
-            "",
-            "memo: 0x00"},
-    {0x321C, "DTAG_COL_MARGIN_r",
-            "",
-            "memo: 0x02"},
-
-    {0x321D, "DTAG_FRM_MAGRIN_r_MSB",
-            "--",
-            "memo: 0x00"},
-    {0x321E, "DTAG_FRM_MAGRIN_r_LSB",
-            "--",
-            "memo: 0x02"},
-};
-
-static const reg_meta* regmeta_lookup(uint16_t addr) {
-    for (size_t i = 0; i < ARRAY_LEN(kRegDB); ++i)
-        if (kRegDB[i].addr == addr) return &kRegDB[i];
-    return NULL;
-}
-
-/* Find address index in arr[0..len). Returns -1 if not found. */
-static int find_addr_index(const regval_list *arr, size_t len, uint16_t addr) {
-    for (size_t i = 0; i < len; ++i){
-        if (arr[i].Address == addr) return (int)i;
-    }
-    return -1;
-}
-
-/* Pretty-print one address with metadata + default/override/effective values */
-static void print_reg_info_addr(uint16_t addr,
-                                const regval_list *defaults, size_t defaults_len,
-                                const regval_list *overrides, size_t overrides_len)
-{
-    const reg_meta *m = regmeta_lookup(addr);
-    int idx_def = find_addr_index(defaults, defaults_len, addr);
-    int idx_ovr = find_addr_index(overrides, overrides_len, addr);
-
-    const char *nm   = m ? m->name  : "(unknown)";
-    const char *brf  = m ? m->brief : "No metadata available";
-    const char *note = m ? m->notes : "-";
-
-    xil_printf("0x%04X  %-12s  %s\r\n", addr, nm, brf);
-    xil_printf("    notes      : %s\r\n", note);
-    if (idx_def >= 0) xil_printf("    default    : 0x%02X\r\n", defaults[idx_def].Data);
-    else              xil_printf("    default    : (N/A)\r\n");
-    if (idx_ovr >= 0) xil_printf("    override   : 0x%02X\r\n", overrides[idx_ovr].Data);
-    else              xil_printf("    override   : (none)\r\n");
-
-    if (idx_ovr >= 0) xil_printf("    effective  : 0x%02X (override)\r\n", overrides[idx_ovr].Data);
-    else if (idx_def >= 0) xil_printf("    effective  : 0x%02X (default)\r\n", defaults[idx_def].Data);
-    else xil_printf("    effective  : (undefined in current sets)\r\n");
-}
-
-/* UART line input (blocking; echoes; backspace supported). */
-static size_t uart_readline(char *buf, size_t cap) {
-    if (cap == 0) return 0;
-    size_t n = 0;
-    for (;;) {
-        char c = (char)XUartPs_RecvByte(UART_BASEADDR);
-        if (c == '\r' || c == '\n') {
-            XUartPs_SendByte(UART_BASEADDR, '\r');
-            XUartPs_SendByte(UART_BASEADDR, '\n');
-            break;
-        } else if (c == 0x08 || c == 0x7F) { /* backspace */
-            if (n > 0) {
-                XUartPs_SendByte(UART_BASEADDR, 0x08);
-                XUartPs_SendByte(UART_BASEADDR, ' ');
-                XUartPs_SendByte(UART_BASEADDR, 0x08);
-                --n;
-            }
-        } else {
-            XUartPs_SendByte(UART_BASEADDR, (uint8_t)c);
-            if (n + 1 < cap) buf[n++] = c; /* keep room for '\0' */
-        }
-    }
-    buf[n] = '\0';
-    return n;
-}
-
-/* Parse "AAAA:DD 0166=31 0ABC 07, ..." into out[]. 0 on success, <0 on error. */
-static int parse_pairs(const char *line,
-                       regval_list *out, size_t out_cap, size_t *out_len) {
-    size_t n = 0; const char *p = line;
-    while (*p) {
-        /* seek hex start */
-        while (*p && !is_hex_char(*p) && *p != '0') ++p;
-        if (!*p) break;
-
-        /* optional 0x prefix for address */
-        if (p[0]=='0' && (p[1]=='x'||p[1]=='X')) p += 2;
-
-        /* address: exactly 4 hex digits */
-        int cnt = 0; uint16_t addr = 0;
-        while (is_hex_char(*p) && cnt < 4) {
-            int nib = hex_nibble(*p++); if (nib < 0) return SENSOR_CFG_ERR_PARSE;
-            addr = (uint16_t)((addr << 4) | (uint16_t)nib); ++cnt;
-        }
-        if (cnt == 0) break;
-        if (cnt != 4) return SENSOR_CFG_ERR_PARSE;
-
-        /* skip to value start */
-        while (*p && !is_hex_char(*p) && *p != '0') ++p;
-        if (!*p) return SENSOR_CFG_ERR_PARSE;
-
-        /* optional 0x prefix for value */
-        if (p[0]=='0' && (p[1]=='x'||p[1]=='X')) p += 2;
-
-        /* value: exactly 2 hex digits */
-        cnt = 0; uint16_t data = 0;
-        while (is_hex_char(*p) && cnt < 2) {
-            int nib = hex_nibble(*p++); if (nib < 0) return SENSOR_CFG_ERR_PARSE;
-            data = (uint16_t)((data << 4) | (uint16_t)nib); ++cnt;
-        }
-        if (cnt != 2) return SENSOR_CFG_ERR_PARSE;
-
-        if (n >= out_cap) return SENSOR_CFG_ERR_CAP;
-        out[n].Address = addr;
-        out[n].Data    = (uint8_t)data;
-        ++n;
-
-        while (*p && !is_hex_char(*p) && *p != '0') ++p; /* skip separators */
-    }
-    *out_len = n;
-    return SENSOR_CFG_OK;
-}
-
-/* Upsert: update if address exists; append if new. */
-static int upsert_pairs(regval_list *dst, size_t *dst_len, size_t dst_cap,
-                        const regval_list *src, size_t src_len) {
-    size_t n = *dst_len;
-    for (size_t i = 0; i < src_len; ++i) {
-        int idx = find_addr_index(dst, n, src[i].Address);
-        if (idx >= 0) {
-            dst[idx].Data = src[i].Data;
-        } else {
-            if (n >= dst_cap) return SENSOR_CFG_ERR_CAP;
-            dst[n++] = src[i];
-        }
-    }
-    *dst_len = n;
-    return SENSOR_CFG_OK;
-}
-
-/* Delete by hex address; returns removed count. */
-static int delete_by_address(regval_list *arr, size_t *len, uint16_t addr) {
-    size_t n = *len, w = 0; int removed = 0;
-    for (size_t i = 0; i < n; ++i) {
-        if (arr[i].Address == addr) { ++removed; continue; }
-        if (w != i) arr[w] = arr[i];
-        ++w;
-    }
-    *len = w;
-    return removed;
-}
-
-/* Delete by index; returns 1 if removed, 0 if invalid index. */
-static int delete_by_index(regval_list *arr, size_t *len, size_t idx) {
-    if (idx >= *len) return 0;
-    for (size_t i = idx + 1; i < *len; ++i) arr[i-1] = arr[i];
-    --(*len);
-    return 1;
-}
-
-/* (Unused now) Validate overrides: check duplicates; values are already typed. */
-static int validate_overrides(const regval_list *arr, size_t len) {
-    int ok = 1;
-    for (size_t i = 0; i < len; ++i)
-        for (size_t j = i + 1; j < len; ++j)
-            if (arr[i].Address == arr[j].Address) {
-                xil_printf("WARN: duplicate address 0x%04X at [%d] and [%d]\r\n",
-                           arr[i].Address, (int)i, (int)j);
-                ok = 0;
-            }
-    if (ok) xil_printf("Validation: OK (no duplicates)\r\n");
-    return ok ? SENSOR_CFG_OK : SENSOR_CFG_ERR_PARSE;
-}
-
-/* Merge defaults + overrides into out[]. */
-static int build_regset(const regval_list *def, size_t def_len,
-                        const regval_list *ovr, size_t ovr_len,
-                        regval_list *out, size_t out_cap, size_t *out_len) {
-    if (out_cap < def_len) {
-        memcpy(out, def, out_cap * sizeof(regval_list));
-        *out_len = out_cap;
-        return SENSOR_CFG_ERR_CAP;
-    }
-    memcpy(out, def, def_len * sizeof(regval_list));
-    size_t n = def_len;
-
-    for (size_t i = 0; i < ovr_len; ++i) {
-        int idx = find_addr_index(out, n, ovr[i].Address);
-        if (idx >= 0) {
-            out[idx].Data = ovr[i].Data;
-        } else {
-            if (n >= out_cap) { *out_len = n; return SENSOR_CFG_ERR_CAP; }
-            out[n++] = ovr[i];
-        }
-    }
-    *out_len = n;
-    return SENSOR_CFG_OK;
-}
-
-/* Pretty-print current overrides. */
-static void print_overrides(const regval_list *arr, size_t len) {
-    xil_printf("Overrides (%d item%s):\r\n", (int)len, (len==1?"":"s"));
-    for (size_t i = 0; i < len; ++i)
-        xil_printf("  [%03d] 0x%04X <- 0x%02X\r\n",
-                   (int)i, arr[i].Address, arr[i].Data);
-}
-
-/* Help text */
-static void print_help(void) {
-    xil_printf(
-        "Commands:\r\n"
-        "  add <pairs>     : Upsert pairs (e.g., add 3225:12 0166=31 0ABC 07)\r\n"
-        "  del <addr|@idx> : Delete by hex address (4 digits) or index with @\r\n"
-        "  info <what>     : Show register info/metadata\r\n"
-        "                    - info 3225 0166      (one or more hex addresses)\r\n"
-        "                    - info all            (all known entries in DB)\r\n"
-        "                    - info defaults       (all addresses in defaults)\r\n"
-        "                    - info overrides      (all addresses in overrides)\r\n"
-        "  list            : Show current overrides\r\n"
-        "  clear           : Remove all overrides\r\n"
-        "  last            : USE last successful configuration (return immediately)\r\n"
-        "  loadlast        : LOAD last overrides into editor (continue editing)\r\n"
-        "  return|done|ok  : Build and return merged sensor_cfg\r\n"
-        "  cancel|exit     : Abort without returning a config\r\n"
-        "  help            : Show this help\r\n"
-        "\r\n"
-        "Pair formats (delimiters : , = space; 0x prefix allowed):\r\n"
-        "  3225:12 0166=31 0ABC 07, 1234:FF\r\n"
-        "Address = 4 hex digits; Value = 2 hex digits.\r\n"
-    );
-}
-
-/* ===== Public API ===== */
-int sensor_cfg_input(const regval_list *defaults, size_t defaults_len,
-                     regval_list *out, size_t out_cap, size_t *out_len)
-{
-    regval_list overrides[SENSOR_CFG_MAX_OVERRIDES];
-    size_t overrides_len = 0;
-
-    xil_printf("\r\n=== sensor_cfg_input (UART) ===\r\n");
-    if (g_last_cfg_len > 0) {
-        xil_printf("Last configuration available: %u item(s). Type 'last' to use or 'loadlast' to edit.\r\n",
-                   (unsigned)g_last_cfg_len);
-    } else {
-        xil_printf("No last configuration cached.\r\n");
-    }
-    xil_printf("Type 'help' for commands. Enter raw pairs to implicitly add.\r\n");
-
-    char line[256];
-    for (;;) {
-        xil_printf("\r\n> ");
-        (void)uart_readline(line, sizeof(line));
-
-        /* skip leading spaces */
-        const char *p = line;
-        while (*p && isspace((unsigned char)*p)) ++p;
-        if (*p == '\0') continue;
-
-        if (ci_starts_with(p, "help")) { print_help(); continue; }
-        if (ci_starts_with(p, "list")) { print_overrides(overrides, overrides_len); continue; }
-        if (ci_starts_with(p, "clear")){ overrides_len = 0; xil_printf("Overrides cleared.\r\n"); continue; }
-
-        /* Use last merged configuration immediately */
-        if (ci_starts_with(p, "last")) {
-            if (g_last_cfg_len == 0) {
-                xil_printf("No last configuration cached.\r\n");
-                continue;
-            }
-            if (out_cap < g_last_cfg_len) {
-                *out_len = 0;
-                xil_printf("ERROR: output buffer too small for last configuration (%u needed).\r\n",
-                           (unsigned)g_last_cfg_len);
-                return SENSOR_CFG_ERR_CAP;
-            }
-            memcpy(out, g_last_cfg, g_last_cfg_len * sizeof(regval_list));
-            *out_len = g_last_cfg_len;
-            xil_printf("Returning LAST configuration (%u item(s)).\r\n", (unsigned)*out_len);
-            return SENSOR_CFG_OK;
-        }
-
-        /* Load last overrides into editor (continue editing) */
-        if (ci_starts_with(p, "loadlast")) {
-            if (g_last_overrides_len == 0) {
-                xil_printf("No last overrides cached.\r\n");
-                continue;
-            }
-            size_t to_copy = g_last_overrides_len;
-            if (to_copy > ARRAY_LEN(overrides)) {
-                xil_printf("Last overrides exceed current capacity; truncating from %u to %u.\r\n",
-                           (unsigned)to_copy, (unsigned)ARRAY_LEN(overrides));
-                to_copy = ARRAY_LEN(overrides);
-            }
-            memcpy(overrides, g_last_overrides, to_copy * sizeof(regval_list));
-            overrides_len = to_copy;
-            xil_printf("Loaded last overrides (%u item(s)) into editor.\r\n", (unsigned)overrides_len);
-            continue;
-        }
-
-        if (ci_starts_with(p, "cancel") || ci_starts_with(p, "exit")) {
-            xil_printf("Aborted by user.\r\n");
-            if (out_len) *out_len = 0;
-            return SENSOR_CFG_ABORTED;
-        }
-        if (ci_starts_with(p, "return") || ci_starts_with(p, "done") || ci_starts_with(p, "ok")) {
-            /* Build and return merged configuration */
-            size_t merged_len = 0;
-            int rc = build_regset(defaults, defaults_len,
-                                  overrides, overrides_len,
-                                  out, out_cap, &merged_len);
-            *out_len = merged_len;
-            if (rc == SENSOR_CFG_OK) {
-                xil_printf("Merged %d item(s). Returning sensor_cfg.\r\n", (int)merged_len);
-
-                /* Update last-cfg cache */
-                if (merged_len <= ARRAY_LEN(g_last_cfg)) {
-                    memcpy(g_last_cfg, out, merged_len * sizeof(regval_list));
-                    g_last_cfg_len = merged_len;
-                } else {
-                    xil_printf("WARN: last-cfg cache too small; not cached.\r\n");
-                    g_last_cfg_len = 0;
-                }
-                /* Update last-overrides cache */
-                if (overrides_len <= ARRAY_LEN(g_last_overrides)) {
-                    memcpy(g_last_overrides, overrides, overrides_len * sizeof(regval_list));
-                    g_last_overrides_len = overrides_len;
-                } else {
-                    xil_printf("WARN: last-overrides cache too small; not cached.\r\n");
-                    g_last_overrides_len = 0;
-                }
-
-                return SENSOR_CFG_OK;
-            } else {
-                xil_printf("ERROR: output capacity insufficient (built %d)\r\n", (int)merged_len);
-                return SENSOR_CFG_ERR_CAP;
-            }
-        }
-        if (ci_starts_with(p, "add")) {
-            /* skip command token */
-            while (*p && !isspace((unsigned char)*p)) ++p;
-            while (*p && isspace((unsigned char)*p)) ++p;
-
-            regval_list tmp[128]; size_t tmp_len = 0;
-            int pr = parse_pairs(p, tmp, ARRAY_LEN(tmp), &tmp_len);
-            if (pr != SENSOR_CFG_OK) {
-                xil_printf("Parse error. Example: add 3225:12 0166=31 0ABC 07\r\n");
-                continue;
-            }
-            int ur = upsert_pairs(overrides, &overrides_len, ARRAY_LEN(overrides), tmp, tmp_len);
-            if (ur != SENSOR_CFG_OK) {
-                xil_printf("ERROR: overrides capacity exceeded (%d items)\r\n", (int)overrides_len);
-                continue;
-            }
-            xil_printf("Upserted %d pair(s). Now %d total.\r\n", (int)tmp_len, (int)overrides_len);
-            continue;
-        }
-        if (ci_starts_with(p, "del")) {
-            /* Syntax: del 0166 @3 ... */
-            while (*p && !isspace((unsigned char)*p)) ++p;
-            while (*p && isspace((unsigned char)*p)) ++p;
-
-            int any = 0;
-            while (*p) {
-                while (*p && isspace((unsigned char)*p)) ++p;
-                if (!*p) break;
-
-                if (*p == '@') {
-                    ++p;
-                    int idx = 0, seen = 0;
-                    while (isdigit((unsigned char)*p)) { idx = idx*10 + (*p - '0'); ++p; seen = 1; }
-                    if (!seen) { xil_printf("ERR: '@' must be followed by index\r\n"); break; }
-                    int rem = delete_by_index(overrides, &overrides_len, (size_t)idx);
-                    xil_printf("del @%d -> %s\r\n", idx, rem ? "removed" : "no such index");
-                    any = 1;
-                } else {
-                    /* delete by hex address (allow 0x prefix) */
-                    if (p[0]=='0' && (p[1]=='x'||p[1]=='X')) p += 2;
-                    int cnt = 0; uint16_t addr = 0;
-                    while (is_hex_char(*p) && cnt < 4) {
-                        int nib = hex_nibble(*p++); if (nib < 0) break;
-                        addr = (uint16_t)((addr<<4)|(uint16_t)nib);
-                        ++cnt;
-                    }
-                    if (cnt != 4) { xil_printf("ERR: need 4 hex digits for address\r\n"); break; }
-                    int rem = delete_by_address(overrides, &overrides_len, addr);
-                    xil_printf("del 0x%04X -> removed %d\r\n", addr, rem);
-                    any = 1;
-                }
-                while (*p && !isalnum((unsigned char)*p) && *p!='@' && *p!='0') ++p; /* next token */
-            }
-            if (!any) xil_printf("Usage: del <addr|@idx> [...]\r\n");
-            continue;
-        }
-        if (ci_starts_with(p, "info")) {
-            /* Skip command token */
-            while (*p && !isspace((unsigned char)*p)) ++p;
-            while (*p && isspace((unsigned char)*p)) ++p;
-
-            if (*p == '\0') {
-                xil_printf("Usage:\r\n");
-                xil_printf("  info 3225 0166      (hex addresses)\r\n");
-                xil_printf("  info all | defaults | overrides\r\n");
-                continue;
-            }
-
-            /* Handle keywords: all / defaults / overrides */
-            if (ci_starts_with(p, "all")) {
-                xil_printf("Register info (all known DB entries):\r\n");
-                for (size_t i = 0; i < ARRAY_LEN(kRegDB); ++i) {
-                    print_reg_info_addr(kRegDB[i].addr, defaults, defaults_len, overrides, overrides_len);
-                }
-                continue;
-            }
-            if (ci_starts_with(p, "defaults")) {
-                xil_printf("Register info (defaults):\r\n");
-                for (size_t i = 0; i < defaults_len; ++i) {
-                    print_reg_info_addr(defaults[i].Address, defaults, defaults_len, overrides, overrides_len);
-                }
-                continue;
-            }
-            if (ci_starts_with(p, "overrides")) {
-                xil_printf("Register info (overrides):\r\n");
-                for (size_t i = 0; i < overrides_len; ++i) {
-                    print_reg_info_addr(overrides[i].Address, defaults, defaults_len, overrides, overrides_len);
-                }
-                continue;
-            }
-
-            /* Otherwise, parse one or more hex addresses from the rest of the line */
-            int shown = 0;
-            while (*p) {
-                while (*p && isspace((unsigned char)*p)) ++p;
-                if (!*p) break;
-
-                /* optional 0x */
-                if (p[0]=='0' && (p[1]=='x'||p[1]=='X')) p += 2;
-
-                int cnt = 0; uint16_t addr = 0;
-                while (is_hex_char(*p) && cnt < 4) {
-                    int nib = hex_nibble(*p++); if (nib < 0) break;
-                    addr = (uint16_t)((addr<<4)|(uint16_t)nib);
-                    ++cnt;
-                }
-                if (cnt != 4) {
-                    xil_printf("ERR: need 4 hex digits for address (e.g., 3225)\r\n");
-                    break;
-                }
-
-                print_reg_info_addr(addr, defaults, defaults_len, overrides, overrides_len);
-                shown = 1;
-
-                /* Skip non-token chars to next token */
-                while (*p && !isalnum((unsigned char)*p) && *p!='0') ++p;
-            }
-            if (!shown) {
-                xil_printf("Usage: info <addr...> | info all | info defaults | info overrides\r\n");
-            }
-            continue;
-        }
-
-        /* If it looks like pairs, treat as implicit 'add' */
-        if (is_hex_char(*p) || *p=='0') {
-            regval_list tmp[128]; size_t tmp_len = 0;
-            int pr = parse_pairs(p, tmp, ARRAY_LEN(tmp), &tmp_len);
-            if (pr == SENSOR_CFG_OK && tmp_len > 0) {
-                int ur = upsert_pairs(overrides, &overrides_len, ARRAY_LEN(overrides), tmp, tmp_len);
-                if (ur != SENSOR_CFG_OK) {
-                    xil_printf("ERROR: overrides capacity exceeded (%d items)\r\n", (int)overrides_len);
-                    continue;
-                }
-                xil_printf("Upserted %d pair(s). Now %d total.\r\n", (int)tmp_len, (int)overrides_len);
-                continue;
-            }
-        }
-
-        xil_printf("Unknown input. Type 'help' for usage.\r\n");
-    }
-}
-
-#endif
-
-
-#ifdef legacy_250923
-
-#include "sensor_cfg_input.h"
-#include "xuartps_hw.h"
-#include "xil_printf.h"
-#include <string.h>
-#include <ctype.h>
-
-/* ====== Small helpers ====== */
-static inline int is_hex_char(char c) {
-    return (c >= '0' && c <= '9') ||
-           (c >= 'a' && c <= 'f') ||
-           (c >= 'A' && c <= 'F');
-}
-static inline int hex_nibble(char c) {
-    if (c >= '0' && c <= '9') return c - '0';
-    if (c >= 'a' && c <= 'f') return 10 + (c - 'a');
-    if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
-    return -1;
-}
-static int ci_starts_with(const char *s, const char *pfx) {
-    while (*pfx) {
-        char a = *s ? (char)tolower((unsigned char)*s) : 0;
-        char b = (char)tolower((unsigned char)*pfx);
-        if (a != b) return 0;
-        ++s; ++pfx;
-    }
-    return 1;
-}
-
-/* ===== Register metadata ===== */
-typedef struct reg_meta {
-    uint16_t addr;
-    const char *name;    /* short name */
-    const char *brief;   /* what this register does */
-    const char *notes;   /* access/reset/range or any extra notes */
-    // TODO: defalut cfg values, experiment logs
-} reg_meta;
-
-
-static const reg_meta kRegDB[] = {
-    /* examples
-    {0x3225, "FRAME_CTRL", "Frame timing/control",          "Reset: 0x12, RW"},
-    {0x0166, "GAIN_MODE",  "Analog/digital gain selection", "Reset: 0x31, RW"},
-    {0x0ABC, "XXX", "desc", "notes"}, ... */
-
-	{0x320C, "DTAG_GRST_MODE_r",
-			"[6] : DTAG_FREE_RUN_MODE_r, [5] : DTAG_MASK_FIRST_FRAME_r, [1] : DTAG_GRST_MODE_r, [0] : DTAG_GH_MODE_r",
-			"memo: 0x5D"},
-
-	{0x3216, "DTAG_SELX_r",
-			"",
-			"memo: 0x02"},
-	{0x3217, "DTAG_SENSE_r",
-			"",
-			"memo: 0x01"},
-	{0x3218, "DTAG_AY_r",
-			"",
-			"memo: 0x00"},
-	{0x3219, "DTAG_AY_RST_GAP_r",
-			"",
-			"memo: 0x00"},
-	{0x321A, "DTAG_APS_RST_r",
-			"",
-			"memo: 0x00"},
-	{0x321C, "DTAG_COL_MARGIN_r",
-			"",
-			"memo: 0x02"},
-
-	{0x321D, "DTAG_FRM_MAGRIN_r_MSB",
-			"--",
-			"memo: 0x00"},
-	{0x321E, "DTAG_FRM_MAGRIN_r_LSB",
-			"--",
-			"memo: 0x02"},
-};
-
-static const reg_meta* regmeta_lookup(uint16_t addr) {
-    for (size_t i = 0; i < ARRAY_LEN(kRegDB); ++i)
-        if (kRegDB[i].addr == addr) return &kRegDB[i];
-    return NULL;
-}
-
-/* Find address index in arr[0..len). Returns -1 if not found. */
-static int find_addr_index(const regval_list *arr, size_t len, uint16_t addr) {
-    for (size_t i = 0; i < len; ++i){
-        if (arr[i].Address == addr) return (int)i;
-    }
-    return -1;
-}
-
-/* Pretty-print one address with metadata + default/override/effective values */
-static void print_reg_info_addr(uint16_t addr,
-                                const regval_list *defaults, size_t defaults_len,
-                                const regval_list *overrides, size_t overrides_len)
-{
-    const reg_meta *m = regmeta_lookup(addr);
-    int idx_def = find_addr_index(defaults, defaults_len, addr);
-    int idx_ovr = find_addr_index(overrides, overrides_len, addr);
-
-    const char *nm   = m ? m->name  : "(unknown)";
-    const char *brf  = m ? m->brief : "No metadata available";
-    const char *note = m ? m->notes : "-";
-
-    xil_printf("0x%04X  %-12s  %s\r\n", addr, nm, brf);
-    xil_printf("    notes      : %s\r\n", note);
-    if (idx_def >= 0) xil_printf("    default    : 0x%02X\r\n", defaults[idx_def].Data);
-    else              xil_printf("    default    : (N/A)\r\n");
-    if (idx_ovr >= 0) xil_printf("    override   : 0x%02X\r\n", overrides[idx_ovr].Data);
-    else              xil_printf("    override   : (none)\r\n");
-
-    if (idx_ovr >= 0) xil_printf("    effective  : 0x%02X (override)\r\n", overrides[idx_ovr].Data);
-    else if (idx_def >= 0) xil_printf("    effective  : 0x%02X (default)\r\n", defaults[idx_def].Data);
-    else xil_printf("    effective  : (undefined in current sets)\r\n");
-}
-
-/* UART line input (blocking; echoes; backspace supported). */
-static size_t uart_readline(char *buf, size_t cap) {
-    if (cap == 0) return 0;
-    size_t n = 0;
-    for (;;) {
-        char c = (char)XUartPs_RecvByte(UART_BASEADDR);
-        if (c == '\r' || c == '\n') {
-            XUartPs_SendByte(UART_BASEADDR, '\r');
-            XUartPs_SendByte(UART_BASEADDR, '\n');
-            break;
-        } else if (c == 0x08 || c == 0x7F) { /* backspace */
-            if (n > 0) {
-                XUartPs_SendByte(UART_BASEADDR, 0x08);
-                XUartPs_SendByte(UART_BASEADDR, ' ');
-                XUartPs_SendByte(UART_BASEADDR, 0x08);
-                --n;
-            }
-        } else {
-            XUartPs_SendByte(UART_BASEADDR, (uint8_t)c);
-            if (n + 1 < cap) buf[n++] = c; /* keep room for '\0' */
-        }
-    }
-    buf[n] = '\0';
-    return n;
-}
-
-
-/* Parse "AAAA:DD 0166=31 0ABC 07, ..." into out[]. 0 on success, <0 on error. */
-static int parse_pairs(const char *line,
-                       regval_list *out, size_t out_cap, size_t *out_len) {
-    size_t n = 0; const char *p = line;
-    while (*p) {
-        /* seek hex start */
-        while (*p && !is_hex_char(*p) && *p != '0') ++p;
-        if (!*p) break;
-
-        /* optional 0x prefix for address */
-        if (p[0]=='0' && (p[1]=='x'||p[1]=='X')) p += 2;
-
-        /* address: exactly 4 hex digits */
-        int cnt = 0; uint16_t addr = 0;
-        while (is_hex_char(*p) && cnt < 4) {
-            int nib = hex_nibble(*p++); if (nib < 0) return SENSOR_CFG_ERR_PARSE;
-            addr = (uint16_t)((addr << 4) | (uint16_t)nib); ++cnt;
-        }
-        if (cnt == 0) break;
-        if (cnt != 4) return SENSOR_CFG_ERR_PARSE;
-
-        /* skip to value start */
-        while (*p && !is_hex_char(*p) && *p != '0') ++p;
-        if (!*p) return SENSOR_CFG_ERR_PARSE;
-
-        /* optional 0x prefix for value */
-        if (p[0]=='0' && (p[1]=='x'||p[1]=='X')) p += 2;
-
-        /* value: exactly 2 hex digits */
-        cnt = 0; uint16_t data = 0;
-        while (is_hex_char(*p) && cnt < 2) {
-            int nib = hex_nibble(*p++); if (nib < 0) return SENSOR_CFG_ERR_PARSE;
-            data = (uint16_t)((data << 4) | (uint16_t)nib); ++cnt;
-        }
-        if (cnt != 2) return SENSOR_CFG_ERR_PARSE;
-
-        if (n >= out_cap) return SENSOR_CFG_ERR_CAP;
-        out[n].Address = addr;
-        out[n].Data    = (uint8_t)data;
-        ++n;
-
-        while (*p && !is_hex_char(*p) && *p != '0') ++p; /* skip separators */
-    }
-    *out_len = n;
-    return SENSOR_CFG_OK;
-}
-
-/* Upsert: update if address exists; append if new. */
-static int upsert_pairs(regval_list *dst, size_t *dst_len, size_t dst_cap,
-                        const regval_list *src, size_t src_len) {
-    size_t n = *dst_len;
-    for (size_t i = 0; i < src_len; ++i) {
-        int idx = find_addr_index(dst, n, src[i].Address);
-        if (idx >= 0) {
-            dst[idx].Data = src[i].Data;
-        } else {
-            if (n >= dst_cap) return SENSOR_CFG_ERR_CAP;
-            dst[n++] = src[i];
-        }
-    }
-    *dst_len = n;
-    return SENSOR_CFG_OK;
-}
-
-/* Delete by hex address; returns removed count. */
-static int delete_by_address(regval_list *arr, size_t *len, uint16_t addr) {
-    size_t n = *len, w = 0; int removed = 0;
-    for (size_t i = 0; i < n; ++i) {
-        if (arr[i].Address == addr) { ++removed; continue; }
-        if (w != i) arr[w] = arr[i];
-        ++w;
-    }
-    *len = w;
-    return removed;
-}
-
-/* Delete by index; returns 1 if removed, 0 if invalid index. */
-static int delete_by_index(regval_list *arr, size_t *len, size_t idx) {
-    if (idx >= *len) return 0;
-    for (size_t i = idx + 1; i < *len; ++i) arr[i-1] = arr[i];
-    --(*len);
-    return 1;
-}
-
-/* Validate overrides: check duplicates; values are already typed. */
-static int validate_overrides(const regval_list *arr, size_t len) {
-    int ok = 1;
-    for (size_t i = 0; i < len; ++i)
-        for (size_t j = i + 1; j < len; ++j)
-            if (arr[i].Address == arr[j].Address) {
-                xil_printf("WARN: duplicate address 0x%04X at [%d] and [%d]\r\n",
-                           arr[i].Address, (int)i, (int)j);
-                ok = 0;
-            }
-    if (ok) xil_printf("Validation: OK (no duplicates)\r\n");
-    return ok ? SENSOR_CFG_OK : SENSOR_CFG_ERR_PARSE;
-}
-
-/* Merge defaults + overrides into out[]. */
-static int build_regset(const regval_list *def, size_t def_len,
-                        const regval_list *ovr, size_t ovr_len,
-                        regval_list *out, size_t out_cap, size_t *out_len) {
-    if (out_cap < def_len) {
-        memcpy(out, def, out_cap * sizeof(regval_list));
-        *out_len = out_cap;
-        return SENSOR_CFG_ERR_CAP;
-    }
-    memcpy(out, def, def_len * sizeof(regval_list));
-    size_t n = def_len;
-
-    for (size_t i = 0; i < ovr_len; ++i) {
-        int idx = find_addr_index(out, n, ovr[i].Address);
-        if (idx >= 0) {
-            out[idx].Data = ovr[i].Data;
-        } else {
-            if (n >= out_cap) { *out_len = n; return SENSOR_CFG_ERR_CAP; }
-            out[n++] = ovr[i];
-        }
-    }
-    *out_len = n;
-    return SENSOR_CFG_OK;
-}
-
-/* Pretty-print current overrides. */
-static void print_overrides(const regval_list *arr, size_t len) {
-    xil_printf("Overrides (%d item%s):\r\n", (int)len, (len==1?"":"s"));
-    for (size_t i = 0; i < len; ++i)
-        xil_printf("  [%03d] 0x%04X <- 0x%02X\r\n",
-                   (int)i, arr[i].Address, arr[i].Data);
-}
-
-/* Help text */
-static void print_help(void) {
-    xil_printf(
-        "Commands:\r\n"
-        "  add <pairs>     : Upsert pairs (e.g., add 3225:12 0166=31 0ABC 07)\r\n"
-        "  del <addr|@idx> : Delete by hex address (4 digits) or index with @\r\n"
-        "  info <what>     : Show register info/metadata\r\n"
-        "                    - info 3225 0166      (one or more hex addresses)\r\n"
-        "                    - info all            (all known entries in DB)\r\n"
-        "                    - info defaults       (all addresses in defaults)\r\n"
-        "                    - info overrides      (all addresses in overrides)\r\n"
-        "  list            : Show current overrides\r\n"
-        "  clear           : Remove all overrides\r\n"
-        "  return|done|ok  : Build and return merged sensor_cfg\r\n"
-        "  cancel|exit     : Abort without returning a config\r\n"
-        "  help            : Show this help\r\n"
-        "\r\n"
-        "Pair formats (delimiters : , = space; 0x prefix allowed):\r\n"
-        "  3225:12 0166=31 0ABC 07, 1234:FF\r\n"
-        "Address = 4 hex digits; Value = 2 hex digits.\r\n"
-    );
-}
-
-/* ===== Public API ===== */
-int sensor_cfg_input(const regval_list *defaults, size_t defaults_len,
-                     regval_list *out, size_t out_cap, size_t *out_len)
-{
-    regval_list overrides[SENSOR_CFG_MAX_OVERRIDES];
-    size_t overrides_len = 0;
-
-    xil_printf("\r\n=== sensor_cfg_input (UART) ===\r\n");
-    xil_printf("Type 'help' for commands. Enter raw pairs to implicitly add.\r\n");
-
-    char line[256];
-    for (;;) {
-        xil_printf("\r\n> ");
-        (void)uart_readline(line, sizeof(line));
-
-        /* skip leading spaces */
-        const char *p = line;
-        while (*p && isspace((unsigned char)*p)) ++p;
-        if (*p == '\0') continue;
-
-        if (ci_starts_with(p, "help")) { print_help(); continue; }
-        if (ci_starts_with(p, "list")) { print_overrides(overrides, overrides_len); continue; }
-        if (ci_starts_with(p, "clear")){ overrides_len = 0; xil_printf("Overrides cleared.\r\n"); continue; }
-        if (ci_starts_with(p, "cancel") || ci_starts_with(p, "exit")) {
-            xil_printf("Aborted by user.\r\n");
-            if (out_len) *out_len = 0;
-            return SENSOR_CFG_ABORTED;
-        }
-        if (ci_starts_with(p, "return") || ci_starts_with(p, "done") || ci_starts_with(p, "ok")) {
-            /* Build and return merged configuration */
-            size_t merged_len = 0;
-            int rc = build_regset(defaults, defaults_len,
-                                  overrides, overrides_len,
-                                  out, out_cap, &merged_len);
-            *out_len = merged_len;
-            if (rc == SENSOR_CFG_OK) {
-                xil_printf("Merged %d item(s). Returning sensor_cfg.\r\n", (int)merged_len);
-                return SENSOR_CFG_OK;
-            } else {
-                xil_printf("ERROR: output capacity insufficient (built %d)\r\n", (int)merged_len);
-                return SENSOR_CFG_ERR_CAP;
-            }
-        }
-        if (ci_starts_with(p, "add")) {
-            /* skip command token */
-            while (*p && !isspace((unsigned char)*p)) ++p;
-            while (*p && isspace((unsigned char)*p)) ++p;
-
-            regval_list tmp[128]; size_t tmp_len = 0;
-            int pr = parse_pairs(p, tmp, ARRAY_LEN(tmp), &tmp_len);
-            if (pr != SENSOR_CFG_OK) {
-                xil_printf("Parse error. Example: add 3225:12 0166=31 0ABC 07\r\n");
-                continue;
-            }
-            int ur = upsert_pairs(overrides, &overrides_len, ARRAY_LEN(overrides), tmp, tmp_len);
-            if (ur != SENSOR_CFG_OK) {
-                xil_printf("ERROR: overrides capacity exceeded (%d items)\r\n", (int)overrides_len);
-                continue;
-            }
-            xil_printf("Upserted %d pair(s). Now %d total.\r\n", (int)tmp_len, (int)overrides_len);
-            continue;
-        }
-        if (ci_starts_with(p, "del")) {
-            /* Syntax: del 0166 @3 ... */
-            while (*p && !isspace((unsigned char)*p)) ++p;
-            while (*p && isspace((unsigned char)*p)) ++p;
-
-            int any = 0;
-            while (*p) {
-                while (*p && isspace((unsigned char)*p)) ++p;
-                if (!*p) break;
-
-                if (*p == '@') {
-                    ++p;
-                    int idx = 0, seen = 0;
-                    while (isdigit((unsigned char)*p)) { idx = idx*10 + (*p - '0'); ++p; seen = 1; }
-                    if (!seen) { xil_printf("ERR: '@' must be followed by index\r\n"); break; }
-                    int rem = delete_by_index(overrides, &overrides_len, (size_t)idx);
-                    xil_printf("del @%d -> %s\r\n", idx, rem ? "removed" : "no such index");
-                    any = 1;
-                } else {
-                    /* delete by hex address (allow 0x prefix) */
-                    if (p[0]=='0' && (p[1]=='x'||p[1]=='X')) p += 2;
-                    int cnt = 0; uint16_t addr = 0;
-                    while (is_hex_char(*p) && cnt < 4) {
-                        int nib = hex_nibble(*p++); if (nib < 0) break;
-                        addr = (uint16_t)((addr<<4)|(uint16_t)nib);
-                        ++cnt;
-                    }
-                    if (cnt != 4) { xil_printf("ERR: need 4 hex digits for address\r\n"); break; }
-                    int rem = delete_by_address(overrides, &overrides_len, addr);
-                    xil_printf("del 0x%04X -> removed %d\r\n", addr, rem);
-                    any = 1;
-                }
-                while (*p && !isalnum((unsigned char)*p) && *p!='@' && *p!='0') ++p; /* next token */
-            }
-            if (!any) xil_printf("Usage: del <addr|@idx> [...]\r\n");
-            continue;
-        }
-        if (ci_starts_with(p, "info")) {
-			/* Skip command token */
-			while (*p && !isspace((unsigned char)*p)) ++p;
-			while (*p && isspace((unsigned char)*p)) ++p;
-
-			if (*p == '\0') {
-				xil_printf("Usage:\r\n");
-				xil_printf("  info 3225 0166      (hex addresses)\r\n");
-				xil_printf("  info all | defaults | overrides\r\n");
-				continue;
-			}
-
-			/* Handle keywords: all / defaults / overrides */
-			if (ci_starts_with(p, "all")) {
-				xil_printf("Register info (all known DB entries):\r\n");
-				for (size_t i = 0; i < ARRAY_LEN(kRegDB); ++i) {
-					print_reg_info_addr(kRegDB[i].addr, defaults, defaults_len, overrides, overrides_len);
-				}
-				continue;
-			}
-			if (ci_starts_with(p, "defaults")) {
-				xil_printf("Register info (defaults):\r\n");
-				for (size_t i = 0; i < defaults_len; ++i) {
-					print_reg_info_addr(defaults[i].Address, defaults, defaults_len, overrides, overrides_len);
-				}
-				continue;
-			}
-			if (ci_starts_with(p, "overrides")) {
-				xil_printf("Register info (overrides):\r\n");
-				for (size_t i = 0; i < overrides_len; ++i) {
-					print_reg_info_addr(overrides[i].Address, defaults, defaults_len, overrides, overrides_len);
-				}
-				continue;
-			}
-
-			/* Otherwise, parse one or more hex addresses from the rest of the line */
-			int shown = 0;
-			while (*p) {
-				while (*p && isspace((unsigned char)*p)) ++p;
-				if (!*p) break;
-
-				/* optional 0x */
-				if (p[0]=='0' && (p[1]=='x'||p[1]=='X')) p += 2;
-
-				int cnt = 0; uint16_t addr = 0;
-				while (is_hex_char(*p) && cnt < 4) {
-					int nib = hex_nibble(*p++); if (nib < 0) break;
-					addr = (uint16_t)((addr<<4)|(uint16_t)nib);
-					++cnt;
-				}
-				if (cnt != 4) {
-					xil_printf("ERR: need 4 hex digits for address (e.g., 3225)\r\n");
-					break;
-				}
-
-				print_reg_info_addr(addr, defaults, defaults_len, overrides, overrides_len);
-				shown = 1;
-
-				/* Skip non-token chars to next token */
-				while (*p && !isalnum((unsigned char)*p) && *p!='0') ++p;
-			}
-			if (!shown) {
-				xil_printf("Usage: info <addr...> | info all | info defaults | info overrides\r\n");
-			}
-			continue;
-		}
-
-        /* If it looks like pairs, treat as implicit 'add' */
-        if (is_hex_char(*p) || *p=='0') {
-            regval_list tmp[128]; size_t tmp_len = 0;
-            int pr = parse_pairs(p, tmp, ARRAY_LEN(tmp), &tmp_len);
-            if (pr == SENSOR_CFG_OK && tmp_len > 0) {
-                int ur = upsert_pairs(overrides, &overrides_len, ARRAY_LEN(overrides), tmp, tmp_len);
-                if (ur != SENSOR_CFG_OK) {
-                    xil_printf("ERROR: overrides capacity exceeded (%d items)\r\n", (int)overrides_len);
-                    continue;
-                }
-                xil_printf("Upserted %d pair(s). Now %d total.\r\n", (int)tmp_len, (int)overrides_len);
-                continue;
-            }
-        }
-
-        xil_printf("Unknown input. Type 'help' for usage.\r\n");
-    }
-}
-#endif
