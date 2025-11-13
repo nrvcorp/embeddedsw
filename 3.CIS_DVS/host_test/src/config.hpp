@@ -21,10 +21,10 @@
 
 #define CPU_CORE_COMPARATOR 5
 
-#define HOST_FRAME_BATCH_BUFFER_NUM 2048
+#define HOST_FRAME_BATCH_BUFFER_NUM 512
 #define NUM_FRAMES_PER_TRANSFER 1
 
-#define READ_HEADER_ONLY_IF_NOT_NEEDED 0
+#define READ_HEADER_ONLY_IF_NOT_NEEDED 1
 // ** pcie 지연이 줄어드는만큼 폴링 루프가 쌩쌩 돌아가기 때문에 헤더만 읽는 비율이 늘어날수록 cpu 부담이 커짐
 /* READ_HEADER_ONLY_IF_NOT_NEEDED:
   When displaying PCIe‐read frames with downsampling, frames that
@@ -69,7 +69,8 @@
 /******************* DVS Setting **********************************/
 #define DVS_FRAME_W 960
 #define DVS_FRAME_H 720
-#define FRAME_HEADER_BYTES 8
+
+#define FRAME_HEADER_BYTES 16 // 확장헤더 16바이트 //기본 8
 
 #define ID_DVS 0
 #define ID_FIL 1
@@ -97,10 +98,16 @@
 #endif
 
 /******************* DISPLAY Setting ******************************/
-#define DVS_FPS 60
+#define DVS_FPS 3500
 #define DISPLAY_FPS 60
-#define DISPLAY_DOWNSAMPLE_NUM 1 // has to be divisible by NUM_FRAMES_PER_TRANSFER, >= 3
-#define FRAME_ACCUM_COUNT ((DVS_FPS) / ((DISPLAY_FPS) * (DISPLAY_DOWNSAMPLE_NUM)))
+#define DISPLAY_DOWNSAMPLE_NUM 53 // has to be divisible by NUM_FRAMES_PER_TRANSFER, >= 3
+#define FRAME_ACCUM_COUNT__ ((DVS_FPS) / ((DISPLAY_FPS) * (DISPLAY_DOWNSAMPLE_NUM)))
+
+#if FRAME_ACCUM_COUNT__ < 1
+#define FRAME_ACCUM_COUNT 1
+#else
+#define FRAME_ACCUM_COUNT FRAME_ACCUM_COUNT__
+#endif
 
 #if DISPLAY_DOWNSAMPLE_NUM % NUM_FRAMES_PER_TRANSFER != 0
 #error "DISPLAY_DOWNSAMPLE_NUM must be a multiple of NUM_FRAMES_PER_TRANSFER"

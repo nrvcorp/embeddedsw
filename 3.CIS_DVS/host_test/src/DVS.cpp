@@ -67,7 +67,7 @@ DVS::DVS( // normal constructor
       frame_w(frame_w),
       accum_num(accum_num),
       is_header(is_header),
-      header_bytes(8),
+      header_bytes(FRAME_HEADER_BYTES),
       rdy_baseaddr(rdy_baseaddr),
       frame_baseaddr(frame_baseaddr),
       buffer_num(buffer_num),
@@ -79,12 +79,12 @@ DVS::DVS( // normal constructor
       display_downsample_num(display_downsample_num)
 {
     fpt = 1;
-    pcie_read_min_interval_us = 280;
+    pcie_read_min_interval_us = 200;
     last_pcie_read = steady_clock::now();
     std::cout << "TEST1" << std::endl;
     // set total frame bytes
     frame_bytes =
-        (is_header) ? (frame_h * frame_w) / 4 + 8 : (frame_h * frame_w) / 4;
+        (is_header) ? (frame_h * frame_w) / 4 + header_bytes : (frame_h * frame_w) / 4;
 
     // set total pixel num
     pixel_num = frame_h * frame_w;
@@ -162,8 +162,6 @@ DVS::DVS( // pcie burst
     std::cout << "frame_baseaddr = 0x" << std::hex << frame_baseaddr << std::dec
               << std::endl;
 
-    header_bytes = (is_header) ? FRAME_HEADER_BYTES : 0;
-
     last_pcie_read = steady_clock::now();
     tps = dvs_fps / fpt;
     pcie_read_min_interval_us = (1e6 / tps) * 0.7;
@@ -180,8 +178,8 @@ DVS::DVS( // pcie burst
               << std::endl;
 
     // set total frame bytes
-    frame_bytes =
-        (is_header) ? (frame_h * frame_w) / 4 + header_bytes : (frame_h * frame_w) / 4;
+    header_bytes = (is_header) ? FRAME_HEADER_BYTES : 0;
+    frame_bytes = (frame_h * frame_w) / 4 + header_bytes;
     frame_bytes *= fpt;
     // set total pixel num
     pixel_num = frame_h * frame_w;
@@ -242,7 +240,7 @@ DVS::DVS( // pcie burst
 
     terminate = new bool;
     // set data pointer behind header
-    frame_start = (is_header) ? buffer + header_bytes : buffer;
+    frame_start = buffer + header_bytes;
 
     // don't init CIS related params right now
     convert_cis = false;
@@ -263,7 +261,7 @@ DVS::DVS( // crop_roi constructor
       frame_w(frame_w),
       accum_num(accum_num),
       is_header(is_header),
-      header_bytes(8),
+      header_bytes(FRAME_HEADER_BYTES),
       rdy_baseaddr(rdy_baseaddr),
       frame_baseaddr(frame_baseaddr),
       buffer_num(buffer_num),
@@ -276,13 +274,13 @@ DVS::DVS( // crop_roi constructor
       display_downsample_num(display_downsample_num)
 {
     fpt = 1;
-    pcie_read_min_interval_us = 280;
+    pcie_read_min_interval_us = 200;
     last_pcie_read = steady_clock::now();
     std::cout
         << "TEST2" << std::endl;
     // set total frame bytes
     frame_bytes =
-        (is_header) ? (frame_h * frame_w) / 4 + 8 : (frame_h * frame_w) / 4;
+        (is_header) ? (frame_h * frame_w) / 4 + header_bytes : (frame_h * frame_w) / 4;
 
     // set total pixel num
     pixel_num = frame_h * frame_w;
@@ -478,20 +476,50 @@ void DVS::convert2BitToBGR_accum()
     }
 }
 
+void DVS::decode_header(const char *buffer, uint64_t &sensor_cfg_index,
+                        int &frame_num,
+                        uint32_t &timestamp)
+{
+
+    static const int header_ext_size = 8;
+    // 암시적 캐스팅은 32비트 타입이라 그 이상 크기의 시프트는 명시적 캐스팅 해야됨
+    test_header = ((static_cast<uint64_t>(buffer[7] & 0xffu) << 56) |
+                   (static_cast<uint64_t>(buffer[6] & 0xffu) << 48) |
+                   (static_cast<uint64_t>(buffer[5] & 0xffu) << 40) |
+                   (static_cast<uint64_t>(buffer[4] & 0xffu) << 32) |
+                   (static_cast<uint64_t>(buffer[3] & 0xffu) << 24) |
+                   (static_cast<uint64_t>(buffer[2] & 0xffu) << 16) |
+                   (static_cast<uint64_t>(buffer[1] & 0xffu) << 8) |
+                   static_cast<uint64_t>(buffer[0] & 0xffu));
+
+    // Extract frame number from buffer
+    frame_num = ((static_cast<int>(static_cast<unsigned char>(buffer[7 + header_ext_size]) << 24)) |
+                 (static_cast<int>(static_cast<unsigned char>(buffer[6 + header_ext_size]) << 16)) |
+                 (static_cast<int>(static_cast<unsigned char>(buffer[5 + header_ext_size]) << 8)) |
+                 (static_cast<int>(static_cast<unsigned char>(buffer[4 + header_ext_size]))));
+
+    // Extract timestamp from buffer
+    timestamp = ((static_cast<uint32_t>(static_cast<unsigned char>(buffer[3 + header_ext_size]) << 24)) |
+                 (static_cast<uint32_t>(static_cast<unsigned char>(buffer[2 + header_ext_size]) << 16)) |
+                 (static_cast<uint32_t>(static_cast<unsigned char>(buffer[1 + header_ext_size]) << 8)) |
+                 (static_cast<uint32_t>(static_cast<unsigned char>(buffer[0 + header_ext_size]))));
+}
+
 void DVS::decode_header(const char *buffer, int &frame_num,
                         uint32_t &timestamp)
 {
+
     // Extract frame number from buffer
-    frame_num = ((static_cast<unsigned char>(buffer[7]) << 24) |
-                 (static_cast<unsigned char>(buffer[6]) << 16) |
-                 (static_cast<unsigned char>(buffer[5]) << 8) |
-                 static_cast<unsigned char>(buffer[4]));
+    frame_num = ((static_cast<int>(static_cast<unsigned char>(buffer[7]) << 24)) |
+                 (static_cast<int>(static_cast<unsigned char>(buffer[6]) << 16)) |
+                 (static_cast<int>(static_cast<unsigned char>(buffer[5]) << 8)) |
+                 (static_cast<int>(static_cast<unsigned char>(buffer[4]))));
 
     // Extract timestamp from buffer
-    timestamp = ((static_cast<unsigned char>(buffer[3]) << 24) |
-                 (static_cast<unsigned char>(buffer[2]) << 16) |
-                 (static_cast<unsigned char>(buffer[1]) << 8) |
-                 static_cast<unsigned char>(buffer[0]));
+    timestamp = ((static_cast<uint32_t>(static_cast<unsigned char>(buffer[3]) << 24)) |
+                 (static_cast<uint32_t>(static_cast<unsigned char>(buffer[2]) << 16)) |
+                 (static_cast<uint32_t>(static_cast<unsigned char>(buffer[1]) << 8)) |
+                 (static_cast<uint32_t>(static_cast<unsigned char>(buffer[0]))));
 }
 
 void DVS::read_frame(char *dvs_buffer)
@@ -615,10 +643,12 @@ void DVS::init_rd_ptr(void)
     printf("rd ptr = %d\n", rd_ptr);
 }
 
-void DVS::calc_fps(double &fps, int &frameCount, double &startTime,
+void DVS::calc_fps(double &fps, int &display_fps, int &frameCount, double &startTime,
                    cv::Mat &frame)
 {
+    static int display_fps_cap = 0;
     frameCount += accum_num * display_downsample_num * fpt;
+    display_fps++;
     double end = cv::getTickCount();
     double elapsedTime = (end - startTime) / cv::getTickFrequency();
     // auto end = (std::chrono::high_resolution_clock::now());
@@ -626,23 +656,31 @@ void DVS::calc_fps(double &fps, int &frameCount, double &startTime,
     // (std::chrono::duration_cast<std::chrono::microseconds>(end - startTime)) ;
     if (elapsedTime >= 1.0)
     {
+        startTime = end;
         fps = frameCount / elapsedTime;
         frameCount = 0;
-        startTime = end;
+        display_fps_cap = display_fps;
+        display_fps = 0;
+        std::cout << "test_header: " << std::dec << test_header
+                  << std::endl;
     }
 
-    std::ostringstream oss;
+    std::ostringstream oss, oss2;
     oss << "processed FPS: " << static_cast<int>(fps)
         << " downsample num: " << static_cast<int>(display_downsample_num)
         << " accum num: " << static_cast<int>(accum_num);
-    cv::putText(frame, oss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
+    cv::putText(frame, oss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.7,
                 cv::Scalar(0, 255, 0), 2);
-    std::ostringstream oss2;
+
+    oss2 << "rendered FPS: " << static_cast<int>(display_fps_cap);
+    cv::putText(frame, oss2.str(), cv::Point(10, 65), cv::FONT_HERSHEY_SIMPLEX, 0.7,
+                cv::Scalar(0, 255, 0), 2);
 }
 
 void DVS::display_stream(bool is_flip)
 {
-    // double fps = 0.0;
+    // double fps = 0.0,
+    // int display_fps = 0;
     // int frameCount = 0;
     // double startTime = cv::getTickCount();
     while (true)
@@ -669,7 +707,7 @@ void DVS::display_stream(bool is_flip)
         {
             cv::flip(frame, frame, 0);
         }
-        // calc_fps(fps, frameCount, startTime, frame);
+        // calc_fps(fps, display_fps, frameCount, startTime, frame);
 
         // display using mutex locking
         display_mutex.lock_display();
@@ -754,6 +792,9 @@ void DVS::multiple_buf_display_fps_pcie_reader()
     uint32_t timestamp;
     long long timestamp_itv = 0;
     char *dvs_buffer;
+#if (FRAME_HEADER_BYTES == 16)
+    uint64_t sensor_cfg_index;
+#endif
 
     // while reading raw sensor data, check frame num consistency too
 
@@ -795,15 +836,20 @@ void DVS::multiple_buf_display_fps_pcie_reader()
 #else
                     read_frame(dvs_buffer);
 #endif
+
                 // check frame num consistency
+#if (FRAME_HEADER_BYTES == 16)
+                decode_header(dvs_buffer, sensor_cfg_index, frame_num, timestamp);
+#else
                 decode_header(dvs_buffer, frame_num, timestamp);
+#endif
                 int frame_num_gap = (frame_num - prev_frame_num) > 0 ? (frame_num - prev_frame_num) : (frame_num - prev_frame_num) + 256;
                 if (frame_num_gap != fpt)
                 {
                     if (check_init)
                     {
                         error_num++;
-                        std::cout << "====================================================="
+                        /*std::cout << "====================================================="
                                      "================================================"
                                   << std::endl;
                         std::cout << "(p) ERROR NUM: " << std::dec << error_num
@@ -814,7 +860,7 @@ void DVS::multiple_buf_display_fps_pcie_reader()
                                   << ", frame_num: " << frame_num << std::endl;
                         std::cout << "====================================================="
                                      "================================================"
-                                  << std::endl;
+                                  << std::endl;*/
                     }
                 }
 
@@ -847,6 +893,7 @@ void DVS::multiple_buf_display_fps_render(bool is_flip)
     std::cout << "TEST MULT4" << std::endl;
 
     double fps = 0.0;
+    int display_fps = 0;
     int frameCount = 0;
     double startTime = cv::getTickCount();
     double end = cv::getTickCount();
@@ -887,7 +934,7 @@ void DVS::multiple_buf_display_fps_render(bool is_flip)
         {
             cv::flip(frame, frame, 0);
         }
-        calc_fps(fps, frameCount, startTime, frame);
+        calc_fps(fps, display_fps, frameCount, startTime, frame);
 
         // display using mutex locking
         // display_mutex.lock_display();
@@ -914,6 +961,10 @@ void DVS::check_frame_drop()
     int error_num = 0;
     int frame_num;
     uint32_t timestamp;
+#if (FRAME_HEADER_BYTES == 16)
+    uint64_t sensor_cfg_index;
+#endif
+
     auto start = std::chrono::high_resolution_clock::now();
     while (1)
     {
@@ -933,7 +984,11 @@ void DVS::check_frame_drop()
 
         // get frame num and headers
         read_frame(buffer);
+#if (FRAME_HEADER_BYTES == 16)
+        decode_header(buffer, sensor_cfg_index, frame_num, timestamp);
+#else
         decode_header(buffer, frame_num, timestamp);
+#endif
         // std::cout << "frame_pointer value: " << std::dec << rd_ptr  << " ";
         // std::cout << "frame_num value (decimal): " << std::dec << frame_num <<
         // "(hex): 0x" << std::hex << frame_num << "  "; std::cout << "timestamp
@@ -996,6 +1051,9 @@ void *DVS::multiple_buf_pcie_reader()
     int frame_num;
     uint32_t timestamp;
     char *dvs_buffer;
+#if (FRAME_HEADER_BYTES == 16)
+    uint64_t sensor_cfg_index;
+#endif
 
     if (posix_memalign((void **)&dvs_buffer, 4096, frame_bytes) != 0)
     {
@@ -1025,7 +1083,11 @@ void *DVS::multiple_buf_pcie_reader()
             read_frame(dvs_buffer);
 
             // check frame num consistency
+#if (FRAME_HEADER_BYTES == 16)
+            decode_header(dvs_buffer, sensor_cfg_index, frame_num, timestamp);
+#else
             decode_header(dvs_buffer, frame_num, timestamp);
+#endif
             int frame_num_gap = (frame_num - prev_frame_num) > 0 ? (frame_num - prev_frame_num) : (frame_num - prev_frame_num) + 256;
             if (frame_num_gap != fpt)
             {
@@ -1268,6 +1330,9 @@ void DVS::mbuf_DnW_pcie_reader()
     int frame_num;
     uint32_t timestamp;
     char *dvs_buffer;
+#if (FRAME_HEADER_BYTES == 16)
+    uint64_t sensor_cfg_index;
+#endif
 
     if (posix_memalign((void **)&dvs_buffer, 4096, frame_bytes) != 0)
     {
@@ -1293,7 +1358,11 @@ void DVS::mbuf_DnW_pcie_reader()
             read_frame(dvs_buffer);
 
             // check frame num consistency
+#if (FRAME_HEADER_BYTES == 16)
+            decode_header(dvs_buffer, sensor_cfg_index, frame_num, timestamp);
+#else
             decode_header(dvs_buffer, frame_num, timestamp);
+#endif
             int frame_num_gap = (frame_num - prev_frame_num) > 0 ? (frame_num - prev_frame_num) : (frame_num - prev_frame_num) + 256;
             if (frame_num_gap != fpt)
             {
@@ -1333,6 +1402,7 @@ void DVS::mbuf_DnW_display_render(bool is_flip)
     std::cout << "TEST MULT4" << std::endl;
 
     double fps = 0.0;
+    int display_fps = 0;
     int frameCount = 0;
     double startTime = cv::getTickCount();
     double end = cv::getTickCount();
@@ -1385,7 +1455,7 @@ void DVS::mbuf_DnW_display_render(bool is_flip)
                 {
                     cv::flip(frame, frame, 0);
                 }
-                calc_fps(fps, frameCount, startTime, frame);
+                calc_fps(fps, display_fps, frameCount, startTime, frame);
 
                 cv::imshow(winname, frame);
 

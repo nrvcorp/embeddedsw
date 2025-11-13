@@ -1,6 +1,6 @@
 #pragma once
 
-#include "config.hpp" // DVS_FRAME_W, DVS_FRAME_H, CV_WORKER_CORES_LIST
+#include "config.hpp" // DVS_FRAME_W, DVS_FRAME_H, CV_WORKER_CORES_LIST, FRAME_HEADER_BYTES
 #include <array>
 #include <fstream>
 #include <iostream>
@@ -119,11 +119,24 @@ class DatToPngConverter
                     continue;
 
                 // --- [헤더에서 timestamp와 frame_num 추출] ---
+#if (FRAME_HEADER_BYTES == 8)
                 uint32_t timestamp = (raw[0]) | (raw[1] << 8) | (raw[2] << 16) | (raw[3] << 24);
                 uint32_t frame_num = (raw[4]) | (raw[5] << 8) | (raw[6] << 16) | (raw[7] << 24);
-
+#elif (FRAME_HEADER_BYTES == 16)
+                std::uint64_t sensor_cfg_index = // 암시적 캐스팅은 32비트 타입이라 그 이상 크기의 시프트는 명시적 캐스팅 해야됨
+                    (static_cast<std::uint64_t>(raw[0])) |
+                    (static_cast<std::uint64_t>(raw[1]) << 8) |
+                    (static_cast<std::uint64_t>(raw[2]) << 16) |
+                    (static_cast<std::uint64_t>(raw[3]) << 24) |
+                    (static_cast<std::uint64_t>(raw[4]) << 32) |
+                    (static_cast<std::uint64_t>(raw[5]) << 40) |
+                    (static_cast<std::uint64_t>(raw[6]) << 48) |
+                    (static_cast<std::uint64_t>(raw[7]) << 56);
+                uint32_t timestamp = (raw[8]) | (raw[9] << 8) | (raw[10] << 16) | (raw[11] << 24);
+                uint32_t frame_num = (raw[12]) | (raw[13] << 8) | (raw[14] << 16) | (raw[15] << 24);
+#endif
                 // --- [헤더 제거 후 실제 이미지 데이터만 추출] ---
-                const uint8_t *img_data = raw.data() + 8;
+                const uint8_t *img_data = raw.data() + FRAME_HEADER_BYTES;
 
                 cv::Mat gray(H, W, CV_8UC1);
                 for (int y = 0; y < H; ++y)
@@ -138,9 +151,9 @@ class DatToPngConverter
                     }
                 }
 
-                // 출력 파일명 생성: "원본이름_f프레임번호_t타임스탬프.png"
+                // 출력 파일명 생성: "원본이름_c센서설정인덱스_f프레임번호_t타임스탬프.png"
                 std::ostringstream fname;
-                fname << dat.stem().string() << "_f" << frame_num << "_t" << timestamp << ".png";
+                fname << dat.stem().string() << "_c" << sensor_cfg_index << "_f" << frame_num << "_t" << timestamp << ".png";
                 fs::path png = out_dir / fname.str();
 
                 if (cv::imwrite(png.string(), gray))

@@ -49,6 +49,8 @@ void setThreadPriorityHigh(std::thread &t);
 class DVS
 {
   private:
+    uint64_t test_header; // temp
+
     // PCIe connection
     PCIe pcie;
     std::chrono::steady_clock::time_point last_pcie_read;
@@ -269,6 +271,10 @@ class DVS
      */
     void decode_header(
         const char *buffer, int &frame_num, uint32_t &timestamp);
+
+    void decode_header( // 확장 헤더 16바이트 8B[센서설정정보] 4B[프레임번호] 4B[타임스탬프]
+        const char *buffer, uint64_t &sensor_cfg_index, int &frame_num, uint32_t &timestamp);
+
     /**
      * set ROI parameters for DVS opencv video
      * for creating a square ROI bounding box inside DVS frame
@@ -280,7 +286,8 @@ class DVS
      * @param roi_min_size_ minimum ROI bounding box size (in pixels)
      * @param roi_inflation_ratio_ enlarge bounding box size to center and zoom out ROI for NPU object detection purposes
      */
-    void set_DVS_ROI(int roi_event_score_, int row_score_threshold_, int roi_height_min_threshold_, int roi_min_size_, float roi_inflation_ratio_);
+    void
+    set_DVS_ROI(int roi_event_score_, int row_score_threshold_, int roi_height_min_threshold_, int roi_min_size_, float roi_inflation_ratio_);
 
     /**
      * set ROI parameters and DVS position relative to CIS
@@ -313,7 +320,7 @@ class DVS
      * @param[inout] startTime value of last time measurement inside calc_fps
      * @param[out] frame frame to write FPS text to
      */
-    void calc_fps(double &fps, int &frameCount, double &startTime, cv::Mat &frame);
+    void calc_fps(double &fps, int &display_fps, int &frameCount, double &startTime, cv::Mat &frame);
 
     /**
      * displays DVS frame to opencv video, multithreading-safe
