@@ -72,6 +72,8 @@
 
 #define FRAME_HEADER_BYTES 16 // 확장헤더 16바이트 //기본 8
 
+#define STORE_EVERY_FRAME 0 // 0: (확장 헤더 사용시) 헤더값이 변할때마다 일정 갯수의 프레임만 저장, 저장 단위는 CV_WORKER_CORES_NUM 의 배수
+
 #define ID_DVS 0
 #define ID_FIL 1
 

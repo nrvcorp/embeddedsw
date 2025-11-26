@@ -50,6 +50,7 @@ class DVS
 {
   private:
     uint64_t test_header; // temp
+    // std::atomic<int> save_cnt{0};
 
     // PCIe connection
     PCIe pcie;

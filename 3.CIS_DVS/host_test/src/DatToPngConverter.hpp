@@ -23,6 +23,8 @@ namespace fs = std::experimental::filesystem;
 #ifdef __linux__
 #include <pthread.h>
 #include <sched.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #endif
 
 /// @class DatToPngConverter
@@ -123,7 +125,7 @@ class DatToPngConverter
                 uint32_t timestamp = (raw[0]) | (raw[1] << 8) | (raw[2] << 16) | (raw[3] << 24);
                 uint32_t frame_num = (raw[4]) | (raw[5] << 8) | (raw[6] << 16) | (raw[7] << 24);
 #elif (FRAME_HEADER_BYTES == 16)
-                std::uint64_t sensor_cfg_index = // 암시적 캐스팅은 32비트 타입이라 그 이상 크기의 시프트는 명시적 캐스팅 해야됨
+                uint64_t ext_header = // 암시적 캐스팅은 32비트 타입이라 그 이상 크기의 시프트는 명시적 캐스팅 해야됨
                     (static_cast<std::uint64_t>(raw[0])) |
                     (static_cast<std::uint64_t>(raw[1]) << 8) |
                     (static_cast<std::uint64_t>(raw[2]) << 16) |
@@ -132,6 +134,7 @@ class DatToPngConverter
                     (static_cast<std::uint64_t>(raw[5]) << 40) |
                     (static_cast<std::uint64_t>(raw[6]) << 48) |
                     (static_cast<std::uint64_t>(raw[7]) << 56);
+                uint64_t sensor_cfg_index = ext_header & ((1ULL << 63) - 1);
                 uint32_t timestamp = (raw[8]) | (raw[9] << 8) | (raw[10] << 16) | (raw[11] << 24);
                 uint32_t frame_num = (raw[12]) | (raw[13] << 8) | (raw[14] << 16) | (raw[15] << 24);
 #endif
@@ -151,10 +154,33 @@ class DatToPngConverter
                     }
                 }
 
-                // 출력 파일명 생성: "원본이름_c센서설정인덱스_f프레임번호_t타임스탬프.png"
                 std::ostringstream fname;
-                fname << dat.stem().string() << "_c" << sensor_cfg_index << "_f" << frame_num << "_t" << timestamp << ".png";
+                fname << dat.stem().string()
+                      << "_f" << frame_num
+                      << "_t" << timestamp
+                      << ".png";
+#if (FRAME_HEADER_BYTES == 16)
+                // sensor_cfg_index 별 하위 폴더: out_dir / ("c" + index)
+                fs::path cfg_dir = out_dir / ("c" + std::to_string(sensor_cfg_index));
+                try
+                {
+                    fs::create_directories(cfg_dir);
+                }
+                catch (const fs::filesystem_error &e)
+                {
+                    std::cerr << "[Error] 하위 디렉터리 생성 실패: " << cfg_dir
+                              << " (" << e.what() << ")\n";
+                    continue;
+                }
+                fs::path png = cfg_dir / fname.str();
+#else
+                // 8바이트 헤더일 때는 sensor_cfg_index가 없으므로 그냥 out_dir에 저장
                 fs::path png = out_dir / fname.str();
+#endif
+                // 출력 파일명 생성: "원본이름_c센서설정인덱스_f프레임번호_t타임스탬프.png"
+                /*std::ostringstream fname;
+                fname << dat.stem().string() << "_c" << sensor_cfg_index << "_f" << frame_num << "_t" << timestamp << ".png";
+                fs::path png = out_dir / fname.str();*/
 
                 if (cv::imwrite(png.string(), gray))
                 {
@@ -194,6 +220,26 @@ class DatToPngConverter
             threads.emplace_back(worker, t);
         for (auto &th : threads)
             th.join();
+
+#ifdef __linux__
+        std::cout << "[Info] 권한 변경중(0777)...: " << "\n";
+        // 모든 디렉토리+파일의 권한을 0777로 설정
+        try
+        {
+            // out_dir
+            ::chmod(out_dir.string().c_str(), 0777);
+
+            // 하위 모든 디렉토리+파일에 대해 0777
+            for (const auto &entry : fs::recursive_directory_iterator(out_dir))
+            {
+                ::chmod(entry.path().string().c_str(), 0777);
+            }
+        }
+        catch (const fs::filesystem_error &e)
+        {
+            std::cerr << "[Warning] 권한 변경 중 오류 발생: " << e.what() << "\n";
+        }
+#endif
 
         std::cout << "[Info] 모든 파일 변환 완료: " << out_dir << "\n";
     }

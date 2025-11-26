@@ -156,7 +156,9 @@ DVS::DVS( // pcie burst
       terminate(nullptr),
       display_downsample_num(display_downsample_num),
       init_mode(MODE_MULT),
-      quit(std::move(sdflag))
+      quit(std::move(sdflag)),
+
+      test_header(0)
 {
     std::cout << "TEST MULT" << std::endl;
     std::cout << "frame_baseaddr = 0x" << std::hex << frame_baseaddr << std::dec
@@ -482,6 +484,7 @@ void DVS::decode_header(const char *buffer, uint64_t &sensor_cfg_index,
 {
 
     static const int header_ext_size = 8;
+    static uint64_t prev_id = 0;
     // 암시적 캐스팅은 32비트 타입이라 그 이상 크기의 시프트는 명시적 캐스팅 해야됨
     test_header = ((static_cast<uint64_t>(buffer[7] & 0xffu) << 56) |
                    (static_cast<uint64_t>(buffer[6] & 0xffu) << 48) |
@@ -503,6 +506,15 @@ void DVS::decode_header(const char *buffer, uint64_t &sensor_cfg_index,
                  (static_cast<uint32_t>(static_cast<unsigned char>(buffer[2 + header_ext_size]) << 16)) |
                  (static_cast<uint32_t>(static_cast<unsigned char>(buffer[1 + header_ext_size]) << 8)) |
                  (static_cast<uint32_t>(static_cast<unsigned char>(buffer[0 + header_ext_size]))));
+
+    // 하위 63비트
+    uint64_t cfg_id = test_header & ((1ULL << 63) - 1);
+    if (prev_id != cfg_id)
+    {
+        prev_id = cfg_id;
+        std::cout << "cfg_id: " << std::dec << cfg_id
+                  << std::endl;
+    }
 }
 
 void DVS::decode_header(const char *buffer, int &frame_num,
@@ -661,8 +673,6 @@ void DVS::calc_fps(double &fps, int &display_fps, int &frameCount, double &start
         frameCount = 0;
         display_fps_cap = display_fps;
         display_fps = 0;
-        std::cout << "test_header: " << std::dec << test_header
-                  << std::endl;
     }
 
     std::ostringstream oss, oss2;
@@ -849,7 +859,7 @@ void DVS::multiple_buf_display_fps_pcie_reader()
                     if (check_init)
                     {
                         error_num++;
-                        /*std::cout << "====================================================="
+                        std::cout << "====================================================="
                                      "================================================"
                                   << std::endl;
                         std::cout << "(p) ERROR NUM: " << std::dec << error_num
@@ -860,7 +870,7 @@ void DVS::multiple_buf_display_fps_pcie_reader()
                                   << ", frame_num: " << frame_num << std::endl;
                         std::cout << "====================================================="
                                      "================================================"
-                                  << std::endl;*/
+                                  << std::endl;
                     }
                 }
 
@@ -1298,6 +1308,16 @@ void *DVS::multiple_buf_dat_writer()
             // 4) 각 프레임을 개별 파일로 논블로킹 enqueue
             for (int i = 0; i < CV_WORKER_CORES_NUM; ++i)
             {
+
+#if (!STORE_EVERY_FRAME)
+                // 헤더의 최상위 비트 체크
+                const uint8_t *p = ptrs[i];
+
+                bool should_save = (static_cast<unsigned char>(p[7]) & 0x80u) != 0;
+                if (!should_save)
+                    continue; // 이 프레임은 바로 드랍
+#endif
+
                 int global_index = frame_block_idx * CV_WORKER_CORES_NUM + i;
                 std::ostringstream fn;
                 fn << session_dir << '/'
@@ -1502,6 +1522,7 @@ void *DVS::mbuf_DnW_dat_writer()
     {
         displayedSlots.acquire(CV_WORKER_CORES_NUM);
         {
+
             std::vector<IndexedMutexPool::Guard> guards;
             guards.reserve(CV_WORKER_CORES_NUM);
             for (int i = 0; i < CV_WORKER_CORES_NUM; ++i)
@@ -1522,6 +1543,16 @@ void *DVS::mbuf_DnW_dat_writer()
             // 4) 각 프레임을 개별 파일로 논블로킹 enqueue
             for (int i = 0; i < CV_WORKER_CORES_NUM; ++i)
             {
+
+#if (!STORE_EVERY_FRAME)
+                // 헤더의 최상위 비트 체크
+                const uint8_t *p = ptrs[i];
+
+                bool should_save = (static_cast<unsigned char>(p[7]) & 0x80u) != 0;
+                if (!should_save)
+                    continue; // 이 프레임은 바로 드랍
+#endif
+
                 int global_index = frame_block_idx * CV_WORKER_CORES_NUM + i;
                 std::ostringstream fn;
                 fn << session_dir << '/'
