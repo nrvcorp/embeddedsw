@@ -1,6 +1,23 @@
 *.bin
 *.avi
 
+# Secrets / credentials — never commit these
+*.pem
+*.key
+*.ppk
+*.p12
+*.pfx
+*.env
+.env
+.netrc
+id_rsa
+id_ed25519
+*secret*
+*credential*
+
+# Generated per-machine by pcie_install.sh; never track (held a root password once)
+pcie_setup/pcie_install/run_root.sh
+
 3.CIS_DVS/host/bin_files/*.bin
 3.CIS_DVS/host/png_files/*.png
 3.CIS_DVS/host/vid_files/*
