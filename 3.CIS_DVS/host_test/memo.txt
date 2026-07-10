@@ -1,0 +1,11 @@
+GRUB_CMDLINE_LINUX_DEFAULT="pcie_aspm=off" #pcie 전력 관리 off, wake up 시간 절약
+
+setup_realtime_xdma.sh # cpu 코어 분리, config.hpp에서 사용할 코어 목록 지정
+
+
+# xdma드라이버가 인터럽트 대신 폴링으로 dma 완료 감지
+pcie_setup/tests/load_driver_custom.sh에서 insmod로 xdma드라이버를 로드하는 부분에 poll_mode 옵션 추가
+insmod ../(xdma드라이버)/(xdma드라이버).ko poll_mode=1
+
+cat /sys/module/(xdma드라이버)/parameters/poll_mode  # 입력 후 1 출력시 적용 완료 
+
